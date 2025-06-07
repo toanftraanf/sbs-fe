@@ -8,14 +8,46 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  Alert,
 } from "react-native";
 import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
 import { icons } from "../../constants";
+import authService from "../../services/auth";
 
 export default function RegisterOwner() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async () => {
+    if (!fullName.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập họ và tên");
+      return;
+    }
+
+    if (!phone.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập số điện thoại");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const formattedPhone = phone.startsWith('0') ? phone : `0${phone}`;
+      await authService.registerOwner(formattedPhone, fullName.trim());
+      router.push({
+        pathname: "/verify-otp",
+        params: { phoneNumber: formattedPhone }
+      });
+    } catch (error) {
+      Alert.alert(
+        "Lỗi",
+        error instanceof Error ? error.message : "Đã có lỗi xảy ra"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -68,7 +100,11 @@ export default function RegisterOwner() {
         <View className="w-full h-0.5 bg-[#E0E0E0] my-6" />
 
         {/* OTP Button */}
-        <AppButton title="Gửi mã OTP" filled onPress={() => {}} />
+        <AppButton 
+          title="Gửi mã OTP" 
+          filled 
+          onPress={handleRegister}
+        />
       </View>
     </TouchableWithoutFeedback>
   );

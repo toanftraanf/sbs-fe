@@ -3,12 +3,12 @@ import { Platform } from "react-native";
 // Get the appropriate localhost URL based on platform
 const getLocalhostUrl = () => {
   if (Platform.OS === "android") {
-    return "http://10.0.2.2:8089"; // Android emulator
+    return "http://192.168.1.8:8089"; // IP của máy tính
   }
   if (Platform.OS === "ios") {
-    return "http://localhost:8089"; // iOS simulator
+    return "http://192.168.1.8:8089"; // IP của máy tính
   }
-  return "http://localhost:8089"; // Default fallback
+  return "http://192.168.1.8:8089"; // IP của máy tính
 };
 
 const ENV = {

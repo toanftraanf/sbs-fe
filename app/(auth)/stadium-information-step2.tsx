@@ -1,12 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import * as stadiumApi from "@/services/stadium";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as ImagePicker from 'expo-image-picker';
 import {
     ScrollView,
     Text,
     TextInput,
     TouchableOpacity,
     View,
+    Image,
+    ActivityIndicator,
 } from "react-native";
 import AppButton from "../../components/AppButton";
 import SportNowHeader from "../../components/SportNowHeader";
@@ -29,7 +34,76 @@ export default function StadiumInformationStep2() {
   const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [otherPayments, setOtherPayments] = useState<string[]>([""]);
-  const [pricing, setPricing] = useState<string[]>([""]);
+  const [pricingImages, setPricingImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { stadiumId } = useLocalSearchParams();
+
+  useEffect(() => {
+    if (stadiumId) {
+      fetchStadiumData();
+    }
+  }, [stadiumId]);
+
+  const fetchStadiumData = async () => {
+    try {
+      setLoading(true);
+      const data = await stadiumApi.getStadiumStep2(parseInt(stadiumId as string));
+      setBank(data.bank);
+      setAccountName(data.accountName);
+      setAccountNumber(data.accountNumber);
+      setOtherPayments(data.otherPayments.length > 0 ? data.otherPayments : [""]);
+      setPricingImages(data.pricingImages);
+    } catch (err) {
+      console.error('Error fetching stadium data:', err);
+      alert('Không thể tải dữ liệu sân tập. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Hàm chọn ảnh bảng giá
+  const pickPricingImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+    console.log('Kết quả chọn ảnh bảng giá:', result);
+    if (!result.canceled && result.assets) {
+      console.log('Các uri bảng giá đã chọn:', result.assets.map(a => a.uri));
+      setPricingImages([...pricingImages, ...result.assets.map(a => a.uri)]);
+    }
+  };
+
+  const handleNext = async () => {
+    try {
+      const result = await stadiumApi.updateStadiumStep2({
+        id: parseInt(stadiumId as string),
+        bank,
+        accountName,
+        accountNumber,
+        otherPayments,
+        pricingImages,
+      });
+      console.log('Result from step 2:', result);
+      router.push({
+        pathname: "/(auth)/stadium-information-step3",
+        params: { stadiumId: stadiumId },
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-white">
@@ -94,37 +168,24 @@ export default function StadiumInformationStep2() {
         ))}
         {/* Pricing */}
         <Text className="font-InterBold mb-2 mt-4">Bảng giá</Text>
-        {pricing.map((price, idx) => (
-          <View key={idx} className="flex-row items-center mb-3">
-            <TouchableOpacity
-              className="flex-1 border border-gray-300 rounded-xl px-4 py-3 items-center justify-center"
-              onPress={() => {
-                // TODO: Implement image upload
-              }}
-            >
-              <Ionicons name="image-outline" size={24} color="#515151" />
-              <Text className="text-gray-400 mt-2 text-center">
-                Tải lên hình ảnh bảng giá sân tập của bạn
-              </Text>
-            </TouchableOpacity>
-            {/* <TouchableOpacity
-              onPress={() => setPricing([...pricing, ""])}
-              className="ml-2"
-            >
-              <Ionicons name="add-circle-outline" size={28} color="#4CAF50" />
-            </TouchableOpacity> */}
-          </View>
-        ))}
-        {/* Progress Indicator */}
-        {/* <View className="flex-row justify-center items-center my-4">
-          <View className="w-3 h-3 rounded-full bg-gray-300 mx-1" />
-          <View className="w-3 h-3 rounded-full bg-primary mx-1" />
-          <View className="w-3 h-3 rounded-full bg-gray-300 mx-1" />
-        </View> */}
+        <TouchableOpacity
+          className="flex-1 border border-gray-300 rounded-xl px-4 py-3 items-center justify-center mb-3"
+          onPress={pickPricingImage}
+        >
+          <Ionicons name="image-outline" size={24} color="#515151" />
+          <Text className="text-gray-400 mt-2 text-center">
+            Tải lên hình ảnh bảng giá sân tập của bạn
+          </Text>
+        </TouchableOpacity>
+        <ScrollView horizontal style={{ marginBottom: 12 }}>
+          {pricingImages.map((uri, idx) => (
+            <Image key={idx} source={{ uri }} style={{ width: 80, height: 80, borderRadius: 8, marginRight: 8 }} />
+          ))}
+        </ScrollView>
         {/* Navigation Buttons */}
         <View className="flex-row justify-between mb-8">
           <AppButton style={{width: "48%"}} title="Quay lại" filled={false} onPress={() => router.back()} />
-          <AppButton style={{width: "48%"}} title="Tiếp tục" filled onPress={() => router.push('/(auth)/stadium-information-step3')} />
+          <AppButton style={{width: "48%"}} title="Tiếp tục" filled onPress={handleNext} />
         </View>
       </ScrollView>
     </View>

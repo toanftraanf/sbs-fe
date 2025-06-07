@@ -43,7 +43,29 @@ const AUTHENTICATE = gql`
       phoneNumber
       status
       isVerified
-      token
+      role
+    }
+  }
+`;
+
+const RESET_OTP = gql`
+  mutation ResetOTP($phoneNumber: String!) {
+    resetOTP(phoneNumber: $phoneNumber) {
+      success
+      message
+    }
+  }
+`;
+
+const REGISTER_OWNER = gql`
+  mutation RegisterOwner($phoneNumber: String!, $fullName: String!) {
+    registerOwner(phoneNumber: $phoneNumber, fullName: $fullName) {
+      id
+      phoneNumber
+      fullName
+      status
+      isVerified
+      role
     }
   }
 `;
@@ -137,6 +159,43 @@ class AuthService {
       }
 
       throw new Error("Authentication failed");
+    } catch (error) {
+      throw error instanceof Error
+        ? error
+        : new Error("An unknown error occurred");
+    }
+  }
+
+  public async resetOTP(phoneNumber: string): Promise<boolean> {
+    console.log("[AuthService.resetOTP] Gửi phoneNumber =", phoneNumber);
+    try {
+      const { data } = await apolloClient.mutate<{ resetOTP: boolean }>({
+        mutation: RESET_OTP,
+        variables: { phoneNumber },
+      });
+      console.log("[AuthService.resetOTP] GraphQL trả về:", data?.resetOTP);
+      return data?.resetOTP || false;
+    } catch (error) {
+      console.error("[AuthService.resetOTP] GraphQL error:", error);
+      return false;
+    }
+  }
+
+  public async registerOwner(phoneNumber: string, fullName: string): Promise<any> {
+    try {
+      const { data } = await apolloClient.mutate({
+        mutation: REGISTER_OWNER,
+        variables: {
+          phoneNumber,
+          fullName,
+        },
+      });
+
+      if (data?.registerOwner) {
+        return data.registerOwner;
+      }
+
+      throw new Error("Registration failed");
     } catch (error) {
       throw error instanceof Error
         ? error

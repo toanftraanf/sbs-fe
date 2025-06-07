@@ -2,13 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Text, View } from "react-native";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ACTIVE_COLOR = "#5A983B";
 const INACTIVE_COLOR = "#B0B0B0";
 
 export default function Layout() {
-  const { user } = { user: { role: "user" } }; // user.role === 'owner' or 'user'
-  console.log(user.role);
+  const { user } = useAuth();
+
+  console.log(user?.role);
 
   return (
     <Tabs
@@ -74,7 +76,7 @@ export default function Layout() {
         name="booking"
         options={{
           title: "Lịch đặt",
-          href: user?.role === "owner" ? undefined : null,
+          href: user?.role === "OWNER" ? undefined : null,
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
@@ -104,7 +106,7 @@ export default function Layout() {
         name="stadium-status"
         options={{
           title: "Trạng thái sân",
-          href: user?.role === "owner" ? undefined : null,
+          href: user?.role === "OWNER" ? undefined : null,
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
@@ -134,7 +136,7 @@ export default function Layout() {
         name="team-matching"
         options={{
           title: "Ghép đội",
-          href: user?.role === "user" ? undefined : null,
+          href: user?.role === "CUSTOMER" ? undefined : null,
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
@@ -164,7 +166,7 @@ export default function Layout() {
         name="coach"
         options={{
           title: "Huấn luyện viên",
-          href: user?.role === "user" ? undefined : null,
+          href: user?.role === "CUSTOMER" ? undefined : null,
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
@@ -194,7 +196,7 @@ export default function Layout() {
         name="stadium-booking"
         options={{
           title: "Đặt sân",
-          href: user?.role === "user" ? undefined : null,
+          href: user?.role === "CUSTOMER" ? undefined : null,
           headerShown: false,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
@@ -221,7 +223,7 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
-        name="setting"
+        name="setting" 
         options={{
           title: "Cài đặt",
           headerShown: false,
