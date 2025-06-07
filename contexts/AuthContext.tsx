@@ -1,16 +1,18 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apolloClient } from '../config/apollo';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { apolloClient } from "../config/apollo";
+import authService from "../services/auth";
 
 type User = {
   id: string;
   phoneNumber: string;
-  role: 'OWNER' | 'USER';
+  role: "OWNER" | "CUSTOMER";
 };
 
 type AuthContextType = {
   user: User | null;
   setUser: (user: User | null) => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 };
 
@@ -19,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
@@ -35,12 +37,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUser = async () => {
     try {
-      const userData = await AsyncStorage.getItem('user');
+      const userData = await AsyncStorage.getItem("user");
       if (userData) {
-        setUserState(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+
+        // Check if user still has valid tokens
+        const isAuthenticated = await authService.isAuthenticated();
+        if (isAuthenticated) {
+          setUserState(parsedUser);
+        } else {
+          // Tokens expired or don't exist, clear user data
+          await AsyncStorage.removeItem("user");
+          setUserState(null);
+        }
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error("Error loading user data:", error);
+      // Clear potentially corrupted data
+      await AsyncStorage.removeItem("user");
+      setUserState(null);
     } finally {
       setIsLoading(false);
     }
@@ -49,15 +64,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleSetUser = async (newUser: User | null) => {
     try {
       if (newUser) {
-        await AsyncStorage.setItem('user', JSON.stringify(newUser));
+        await AsyncStorage.setItem("user", JSON.stringify(newUser));
       } else {
-        await AsyncStorage.removeItem('user');
+        await AsyncStorage.removeItem("user");
       }
       setUserState(newUser);
-      // Clear Apollo cache to prevent showing old user data
-      await apolloClient.clearStore();
+
+      // Clear Apollo cache when user changes
+      if (!newUser) {
+        await apolloClient.clearStore();
+      }
     } catch (error) {
-      console.error('Error saving user data:', error);
+      console.error("Error saving user data:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Call auth service logout (which handles backend logout and token clearing)
+      await authService.logout();
+
+      // Clear user data from context and storage
+      await handleSetUser(null);
+
+      console.log("User logged out successfully");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Even if logout fails, clear local data
+      await handleSetUser(null);
+      throw error; // Re-throw to let UI handle error display
     }
   };
 
@@ -66,10 +101,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         setUser: handleSetUser,
+        logout: handleLogout,
         isLoading,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-} 
+}

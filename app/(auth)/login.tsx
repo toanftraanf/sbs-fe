@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Image,
   Keyboard,
@@ -18,6 +18,8 @@ export default function Login() {
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   const handleSendOTP = async () => {
     if (!phone) {
@@ -36,10 +38,10 @@ export default function Login() {
       const user = await authService.checkExistingUser(formattedPhone);
 
       if (user) {
-        // User exists, proceed to OTP verification
+        // User exists, proceed to OTP verification for login
         router.push({
           pathname: "/(auth)/verify-otp",
-          params: { phoneNumber: formattedPhone },
+          params: { phoneNumber: formattedPhone, isLogin: "true" },
         });
       } else {
         // User doesn't exist, redirect to registration

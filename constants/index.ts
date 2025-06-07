@@ -11,3 +11,5 @@ export const icons = {
   arrow_left_circle: require("../assets/icons/arrow_left_circle_line.png"),
   google: require("../assets/icons/google_icon.png"),
 };
+
+export const VERIFY_OTP_TIME = 60;

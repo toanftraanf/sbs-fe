@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apolloClient } from "../config/apollo";
 
 export interface AuthResponse {
@@ -39,21 +40,28 @@ const CHECK_EXISTING_USER = gql`
 const AUTHENTICATE = gql`
   mutation Authenticate($phoneNumber: String!, $otp: String!) {
     authenticate(phoneNumber: $phoneNumber, otp: $otp) {
-      id
-      phoneNumber
-      status
-      isVerified
-      role
+      user {
+        id
+        phoneNumber
+        status
+        isVerified
+        role
+      }
+      accessToken
+      refreshToken
     }
+  }
+`;
+
+const LOGOUT_MUTATION = gql`
+  mutation Logout($accessToken: String!, $refreshToken: String) {
+    logout(accessToken: $accessToken, refreshToken: $refreshToken)
   }
 `;
 
 const RESET_OTP = gql`
   mutation ResetOTP($phoneNumber: String!) {
-    resetOTP(phoneNumber: $phoneNumber) {
-      success
-      message
-    }
+    resetOTP(phoneNumber: $phoneNumber)
   }
 `;
 
@@ -80,6 +88,37 @@ class AuthService {
       AuthService.instance = new AuthService();
     }
     return AuthService.instance;
+  }
+
+  // Token management methods
+  private async storeTokens(accessToken: string, refreshToken?: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem('accessToken', accessToken);
+      if (refreshToken) {
+        await AsyncStorage.setItem('refreshToken', refreshToken);
+      }
+    } catch (error) {
+      console.error('Error storing tokens:', error);
+    }
+  }
+
+  private async getStoredTokens(): Promise<{ accessToken: string | null; refreshToken: string | null }> {
+    try {
+      const accessToken = await AsyncStorage.getItem('accessToken');
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      return { accessToken, refreshToken };
+    } catch (error) {
+      console.error('Error retrieving tokens:', error);
+      return { accessToken: null, refreshToken: null };
+    }
+  }
+
+  private async clearStoredTokens(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+    } catch (error) {
+      console.error('Error clearing tokens:', error);
+    }
   }
 
   public async getGoogleAuthUrl(): Promise<string> {
@@ -134,11 +173,13 @@ class AuthService {
         return data.checkExistingUser;
       }
 
-      throw new Error("Failed to check existing user");
+      // If user doesn't exist, backend should return null/undefined
+      return null;
     } catch (error) {
-      throw error instanceof Error
-        ? error
-        : new Error("An unknown error occurred");
+      console.error("Error checking existing user:", error);
+      // For user existence check, we should return null if there's an error
+      // instead of throwing, so the app can proceed with registration
+      return null;
     }
   }
 
@@ -153,23 +194,70 @@ class AuthService {
       });
 
       if (data?.authenticate) {
-        // Store the token in secure storage or memory
-        // You might want to use expo-secure-store or similar
-        return data.authenticate;
+        const { user, accessToken, refreshToken } = data.authenticate;
+        
+        // Store tokens securely
+        if (accessToken) {
+          await this.storeTokens(accessToken, refreshToken);
+        }
+        
+        return user; // Return user data without tokens for context
       }
 
       throw new Error("Authentication failed");
     } catch (error) {
+      // Handle GraphQL errors with more specific messages
+      if (error instanceof Error && error.message.includes('Số điện thoại không tồn tại')) {
+        throw new Error("Số điện thoại không tồn tại");
+      }
+      if (error instanceof Error && error.message.includes('Mã OTP không hợp lệ')) {
+        throw new Error("Mã OTP không hợp lệ");
+      }
+      
       throw error instanceof Error
         ? error
         : new Error("An unknown error occurred");
     }
   }
 
+  public async logout(): Promise<void> {
+    try {
+      // Get stored tokens
+      const { accessToken, refreshToken } = await this.getStoredTokens();
+      
+      if (accessToken) {
+        // Call backend logout mutation
+        const { data } = await apolloClient.mutate({
+          mutation: LOGOUT_MUTATION,
+          variables: {
+            accessToken,
+            refreshToken,
+          },
+        });
+
+        if (!data?.logout) {
+          console.warn("Backend logout returned false, but continuing with local logout");
+        }
+      }
+
+      // Clear stored tokens regardless of backend response
+      await this.clearStoredTokens();
+      
+      console.log("User logged out successfully");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Even if server logout fails, we should still clear local data
+      await this.clearStoredTokens();
+      throw error instanceof Error
+        ? error
+        : new Error("An unknown error occurred during logout");
+    }
+  }
+
   public async resetOTP(phoneNumber: string): Promise<boolean> {
     console.log("[AuthService.resetOTP] Gửi phoneNumber =", phoneNumber);
     try {
-      const { data } = await apolloClient.mutate<{ resetOTP: boolean }>({
+      const { data } = await apolloClient.mutate({
         mutation: RESET_OTP,
         variables: { phoneNumber },
       });
@@ -201,6 +289,18 @@ class AuthService {
         ? error
         : new Error("An unknown error occurred");
     }
+  }
+
+  // Utility method to get access token for API calls
+  public async getAccessToken(): Promise<string | null> {
+    const { accessToken } = await this.getStoredTokens();
+    return accessToken;
+  }
+
+  // Method to check if user is authenticated
+  public async isAuthenticated(): Promise<boolean> {
+    const { accessToken } = await this.getStoredTokens();
+    return !!accessToken;
   }
 }
 

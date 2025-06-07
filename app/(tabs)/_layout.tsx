@@ -1,8 +1,8 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Text, View } from "react-native";
-import { useAuth } from "@/contexts/AuthContext";
 
 const ACTIVE_COLOR = "#5A983B";
 const INACTIVE_COLOR = "#B0B0B0";
@@ -223,7 +223,7 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
-        name="setting" 
+        name="setting"
         options={{
           title: "Cài đặt",
           headerShown: false,

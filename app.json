@@ -8,8 +8,11 @@
     "scheme": "sbsfe",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "statusBarStyle": "dark",
+    "statusBarBackgroundColor": "#FFFFFF",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "statusBarStyle": "dark"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +20,11 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.xddoan12.sbsfe"
+      "package": "com.xddoan12.sbsfe",
+      "statusBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "web": {
       "bundler": "metro",
