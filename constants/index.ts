@@ -3,6 +3,10 @@ export const LEFT_AREA_WIDTH_INPUT = 40;
 export const images = {
   sportnowLogo: require("../assets/images/sportnow_logo.png"),
   onboardingBg: require("../assets/images/onboarding_bg.png"),
+  badminton: require("../assets/images/badminton.png"),
+  tennis: require("../assets/images/tennis.png"),
+  tabletennis: require("../assets/images/table-tennis.png"),
+  pickleball: require("../assets/images/pickleball.png"),
 };
 
 export const icons = {
@@ -11,3 +15,49 @@ export const icons = {
   arrow_left_circle: require("../assets/icons/arrow_left_circle_line.png"),
   google: require("../assets/icons/google_icon.png"),
 };
+
+export const VERIFY_OTP_TIME = 60;
+
+export enum UserLevel {
+  BEGINNER = 'beginner',
+  INTERMEDIATE = 'intermediate',
+  ADVANCED = 'advanced',
+  PRO = 'pro',
+}
+
+export const USER_LEVEL_OPTIONS = [
+  { label: 'Người mới bắt đầu', value: UserLevel.BEGINNER },
+  { label: 'Trung bình', value: UserLevel.INTERMEDIATE },
+  { label: 'Nâng cao', value: UserLevel.ADVANCED },
+  { label: 'Chuyên nghiệp', value: UserLevel.PRO },
+];
+
+export const getUserLevelLabel = (level: UserLevel): string => {
+  const option = USER_LEVEL_OPTIONS.find(opt => opt.value === level);
+  return option?.label || level;
+};
+
+// Sports data - replace with data from backend sports module
+export const AVAILABLE_SPORTS = [
+  { id: "football", name: "Bóng đá", icon: "football-outline" },
+  { id: "basketball", name: "Bóng rổ", icon: "basketball-outline" },
+  { id: "volleyball", name: "Bóng chuyền", icon: "american-football-outline" },
+  { id: "badminton", name: "Cầu lông", icon: "fitness-outline" },
+  { id: "tennis", name: "Tennis", icon: "tennisball-outline" },
+  { id: "swimming", name: "Bơi lội", icon: "water-outline" },
+  { id: "running", name: "Chạy bộ", icon: "walk-outline" },
+  { id: "cycling", name: "Đạp xe", icon: "bicycle-outline" },
+  { id: "gym", name: "Gym", icon: "barbell-outline" },
+  { id: "yoga", name: "Yoga", icon: "leaf-outline" },
+];
+
+// Fake user data for debugging
+export const FAKE_USER = {
+  fullName: "Nguyễn Văn An",
+  dateOfBirth: new Date(1995, 5, 15), // June 15, 1995
+  gender: "male",
+  address: "123 Nguyễn Huệ, Quận 1, TP.HCM",
+  role: "player" as const,
+  level: UserLevel.INTERMEDIATE, // Use enum value to ensure consistency
+  sports: [1, 2], // Cầu lông (ID: 1) and Quần vợt (ID: 2) - backend sport IDs
+};  

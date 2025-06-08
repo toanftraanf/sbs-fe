@@ -2,6 +2,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   Text,
@@ -10,10 +11,8 @@ import {
   View,
 } from "react-native";
 
-const fakeUser = {
-  name: "Trần Hữu E",
-  stadium: "Sân A",
-};
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const fakeSchedule = [
   { day: "Sun", date: 16 },
@@ -44,10 +43,33 @@ const fakeOrdersPending = [
     avatar: "https://randomuser.me/api/portraits/women/44.jpg",
   },
 ];
-export default function UserHomeRedirect() {
-  const { user } = { user: { role: "user" } };
 
-  if (user?.role === "owner") {
+export default function UserHomeRedirect() {
+  const { user } = useAuth();
+  const { profile, loading } = useUserProfile();
+
+  // Show loading screen while fetching user data
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center bg-white">
+        <ActivityIndicator size="large" color="#5A983B" />
+        <Text className="mt-4 text-gray-600">Đang tải...</Text>
+      </View>
+    );
+  }
+
+  // If no user is logged in, this should be handled by AuthGuard
+  if (!user) {
+    return (
+      <View className="flex-1 justify-center items-center bg-white">
+        <Text className="text-gray-600">
+          Không tìm thấy thông tin người dùng
+        </Text>
+      </View>
+    );
+  }
+
+  if (user?.role === "OWNER") {
     return (
       <>
         <View className="flex-1 bg-[#F5F5F5]">
@@ -57,10 +79,11 @@ export default function UserHomeRedirect() {
               <View className="flex-row justify-between items-center mb-2">
                 <View>
                   <Text className="font-InterBold text-base text-secondary">
-                    {fakeUser.name}
+                    {profile?.fullName ||
+                      `User ${user?.phoneNumber?.slice(-4) || "Unknown"}`}
                   </Text>
                   <Text className="text-xs text-gray-400">
-                    {fakeUser.stadium}
+                    {profile?.address || "Sân A"}
                   </Text>
                 </View>
                 <View className="flex-row items-center space-x-4">
@@ -226,7 +249,7 @@ export default function UserHomeRedirect() {
         </View>
       </>
     );
-  } else if (user?.role === "user") {
+  } else if (user?.role === "CUSTOMER") {
     return (
       <>
         <View className="flex-1 bg-white">
@@ -234,8 +257,13 @@ export default function UserHomeRedirect() {
           <View style={{ backgroundColor: "#E6F4EA" }}>
             <View className="flex-row items-center justify-between px-4 pt-10 pb-2">
               <View>
-                <Text className="font-InterBold text-lg">Nguyễn Văn A</Text>
-                <Text className="text-xs text-gray-500">Quận 9, TP. HCM</Text>
+                <Text className="font-InterBold text-lg">
+                  {profile?.fullName ||
+                    `User ${user?.phoneNumber?.slice(-4) || "Unknown"}`}
+                </Text>
+                <Text className="text-xs text-gray-500">
+                  {profile?.address || "Unknown"}
+                </Text>
               </View>
               <View className="flex-row items-center space-x-4">
                 <Ionicons name="notifications-outline" size={24} color="#222" />

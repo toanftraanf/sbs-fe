@@ -1,6 +1,7 @@
 // src/services/stadium.ts
 import env from "@/config/env";
-import { ApolloClient, gql } from '@apollo/client';
+import { Stadium, StadiumStep1Data, StadiumStep2Data, StadiumStep3Data } from "@/types";
+
 const GRAPHQL_URL = env.API_BASE_URL + "/graphql";
 
 async function graphqlRequest(query: string, variables: Record<string, any>) {
@@ -12,61 +13,6 @@ async function graphqlRequest(query: string, variables: Record<string, any>) {
   const json = await res.json();
   if (json.errors) throw new Error(json.errors[0].message);
   return json.data;
-}
-
-// Types for API responses
-export interface Stadium {
-  id: number;
-  name: string;
-  googleMap: string;
-  phone: string;
-  email: string;
-  website: string;
-  otherContacts: string[];
-  description: string;
-  startTime: string;
-  endTime: string;
-  otherInfo: string;
-  sports: string[];
-  bank: string;
-  accountName: string;
-  accountNumber: string;
-  otherPayments: string[];
-  pricingImages: string[];
-  avatarUrl: string;
-  bannerUrl: string;
-  galleryUrls: string[];
-}
-
-export interface StadiumStep1Data {
-  id: number;
-  name: string;
-  googleMap: string;
-  phone: string;
-  email: string;
-  website: string;
-  otherContacts: string[];
-  description: string;
-  startTime: string;
-  endTime: string;
-  otherInfo: string;
-  sports: string[];
-}
-
-export interface StadiumStep2Data {
-  id: number;
-  bank: string;
-  accountName: string;
-  accountNumber: string;
-  otherPayments: string[];
-  pricingImages: string[];
-}
-
-export interface StadiumStep3Data {
-  id: number;
-  avatarUrl: string;
-  bannerUrl: string;
-  galleryUrls: string[];
 }
 
 // Get stadiums by user ID

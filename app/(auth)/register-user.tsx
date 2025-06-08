@@ -11,11 +11,17 @@ import {
 } from "react-native";
 import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
+import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { icons } from "../../constants";
 
 export default function RegisterUser() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleGoogleLoginError = (errorMessage: string) => {
+    setError(errorMessage);
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -61,11 +67,22 @@ export default function RegisterUser() {
           containerClassName="mb-8"
         />
 
+        {/* Error Message */}
+        {error && (
+          <Text className="text-red-500 mb-4 text-center">{error}</Text>
+        )}
+
         {/* Divider */}
         <View className="w-full h-0.5 bg-[#E0E0E0] my-6" />
 
         {/* OTP Button */}
-        <AppButton title="Gửi mã OTP" filled onPress={() => {router.push("/(auth)/user-information-step1")}} />
+        <AppButton
+          title="Gửi mã OTP"
+          filled
+          onPress={() => {
+            router.push("/(auth)/user-information-step1");
+          }}
+        />
 
         {/* Or divider */}
         <View className="flex-row items-center my-8">
@@ -74,15 +91,10 @@ export default function RegisterUser() {
           <View className="flex-1 h-px bg-[#B0B0B0]" />
         </View>
 
-        {/* Email/Google Button */}
-        <TouchableOpacity className="flex-row items-center justify-center border-2 border-primary rounded-2xl py-3 mb-4">
-          <Text className="font-InterBold text-primary text-lg mr-2">
-            E-mail
-          </Text>
-          <Image source={icons.google} className="w-10 h-10" />
-        </TouchableOpacity>
+        {/* Google Login Button */}
+        <GoogleLoginButton title="Google" onError={handleGoogleLoginError} />
 
-        {/* Register Link */}
+        {/* Login Link */}
         <View className="flex-row justify-center mt-2">
           <Text className="text-secondary">Đã có tài khoản? </Text>
           <TouchableOpacity>
