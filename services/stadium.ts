@@ -501,3 +501,112 @@ export async function deleteStadium(id: number): Promise<Stadium> {
     throw error;
   }
 }
+
+// Get stadiums by location with radius using new API
+export async function getStadiumsByLocation(address: string, radiusKm: number = 5): Promise<Stadium[]> {
+  console.log('Fetching stadiums by location:', address, 'radius:', radiusKm);
+  const query = `
+    query GetStadiumsByLocation($input: FindStadiumsByAddressInput!) {
+      stadiumsByAddress(input: $input) {
+        id
+        name
+        description
+        address
+        googleMap
+        phone
+        email
+        website
+        otherContacts
+        startTime
+        endTime
+        otherInfo
+        sports
+        price
+        area
+        numberOfFields
+        rating
+        status
+        images
+        bank
+        accountName
+        accountNumber
+        otherPayments
+        pricingImages
+        avatarUrl
+        bannerUrl
+        galleryUrls
+        userId
+        user {
+          id
+          email
+        }
+        createdAt
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(query, { 
+      input: {
+        address,
+        radiusKm
+      }
+    });
+    console.log('Stadiums by location response data:', JSON.stringify(data, null, 2));
+    return data.stadiumsByAddress;
+  } catch (error) {
+    console.error('Error fetching stadiums by location:', error);
+    throw error;
+  }
+}
+
+// Get stadiums by name search
+export async function getStadiumsByName(name: string): Promise<Stadium[]> {
+  console.log('Fetching stadiums by name:', name);
+  const query = `
+    query GetStadiumsByName($name: String!) {
+      stadiumsByName(name: $name) {
+        id
+        name
+        description
+        address
+        googleMap
+        phone
+        email
+        website
+        otherContacts
+        startTime
+        endTime
+        otherInfo
+        sports
+        price
+        area
+        numberOfFields
+        rating
+        status
+        images
+        bank
+        accountName
+        accountNumber
+        otherPayments
+        pricingImages
+        avatarUrl
+        bannerUrl
+        galleryUrls
+        userId
+        user {
+          id
+          email
+        }
+        createdAt
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(query, { name });
+    console.log('Stadiums by name response data:', JSON.stringify(data, null, 2));
+    return data.stadiumsByName;
+  } catch (error) {
+    console.error('Error fetching stadiums by name:', error);
+    throw error;
+  }
+}

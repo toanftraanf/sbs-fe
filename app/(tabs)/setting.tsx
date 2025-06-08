@@ -19,6 +19,7 @@ import { useMutation, useQuery, gql } from "@apollo/client";
 import SportNowHeader from "@/components/SportNowHeader";
 import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Query để lấy user (như cũ)
 const GET_USER = gql`
@@ -83,9 +84,10 @@ export default function Setting() {
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
 
+  const { user } = useAuth();
+  console.log("User info", user?.id);
   // TODO: Lấy ID user từ context/auth thật sự
-  const userId = 1;
-
+  const userId = user?.id;
   // ----- useQuery GET_USER -----
   const { loading, error, data } = useQuery(GET_USER, {
     variables: { id: userId },

@@ -19,23 +19,45 @@ import StadiumSports from "../../components/StadiumSports";
 
 const { width } = Dimensions.get("window");
 
-const sports = [
-  { key: "badminton", label: "Quần vợt" },
-  { key: "football", label: "Bóng bàn" },
-];
+// Map sports từ API sang display format
+const mapSportsToDisplay = (sports: string[] = []) => {
+  const sportMap: { [key: string]: string } = {
+    football: "Bóng đá",
+    futsal: "Futsal", 
+    badminton: "Cầu lông",
+    tennis: "Tennis",
+    volleyball: "Bóng chuyền",
+    basketball: "Bóng rổ",
+    tableTennis: "Bóng bàn"
+  };
+  
+  return sports.map(sport => ({
+    key: sport,
+    label: sportMap[sport] || sport
+  }));
+};
 
+// Format time hiển thị
+const formatSchedule = (startTime?: string, endTime?: string) => {
+  if (!startTime || !endTime) {
+    return "Liên hệ để biết giờ hoạt động";
+  }
+  return `Hàng ngày: ${startTime} - ${endTime}`;
+};
+
+// Mock reviews - có thể thay bằng API sau
 const reviews = [
   {
     id: 1,
-    name: "Huỳnh viên k",
+    name: "Khách hàng",
     rating: 5,
-    comment: "Thân thiện, kĩ năng tốt.",
+    comment: "Sân đẹp, dịch vụ tốt.",
   },
   {
     id: 2,
-    name: "Huỳnh viên k",
-    rating: 5,
-    comment: "Thân thiện, kĩ năng tốt.",
+    name: "Người dùng",
+    rating: 4,
+    comment: "Giá cả hợp lý, tiện ích đầy đủ.",
   },
 ];
 
@@ -43,6 +65,49 @@ export default function StadiumDetail() {
   const navigation = useNavigation<any>();
   const params = useLocalSearchParams();
   const stadium = JSON.parse(params.stadium as string);
+  
+  // Debug log - Stadium detail
+  console.log('\n🏟️ === STADIUM DETAIL PAGE LOADED ===');
+  console.log('📊 Stadium Data:', JSON.stringify(stadium, null, 2));
+  console.log('📋 Available Fields:');
+  console.log('   - Basic:', {
+    id: stadium.id,
+    name: stadium.name,
+    phone: stadium.phone,
+    email: stadium.email,
+    website: stadium.website
+  });
+  console.log('   - Media:', {
+    avatarUrl: !!stadium.avatarUrl,
+    bannerUrl: !!stadium.bannerUrl,
+    galleryCount: stadium.galleryUrls?.length || 0,
+    pricingImagesCount: stadium.pricingImages?.length || 0
+  });
+  console.log('   - Payment:', {
+    bank: stadium.bank,
+    accountName: stadium.accountName,
+    accountNumber: stadium.accountNumber,
+    otherPaymentsCount: stadium.otherPayments?.length || 0
+  });
+  console.log('   - Additional:', {
+    sportsCount: stadium.sports?.length || 0,
+    description: !!stadium.description,
+    otherInfo: !!stadium.otherInfo,
+    otherContactsCount: stadium.otherContacts?.length || 0
+  });
+  console.log('🏟️ === END STADIUM DETAIL DEBUG ===\n');
+  
+  // Process stadium data
+  const stadiumSports = mapSportsToDisplay(stadium.sports);
+  const scheduleText = formatSchedule(stadium.startTime, stadium.endTime);
+  
+  // Prioritize banner, then avatar, then gallery, then fallback
+  const stadiumImage = stadium.bannerUrl || 
+                      stadium.avatarUrl || 
+                      (stadium.galleryUrls && stadium.galleryUrls[0]) ||
+                      stadium.image || 
+                      (stadium.images && stadium.images[0]) || 
+                      "https://images.unsplash.com/photo-1506744038136-46273834b3fb";
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -50,7 +115,7 @@ export default function StadiumDetail() {
         {/* Header Image with overlay buttons */}
         <View className="w-full h-44 relative">
           <Image
-            source={{ uri: stadium.image }}
+            source={{ uri: stadiumImage }}
             className="w-full h-full rounded-b-2xl"
           />
           <TouchableOpacity
@@ -72,20 +137,32 @@ export default function StadiumDetail() {
           <View className="flex-row items-center mb-1">
             <MaterialIcons name="calendar-today" size={18} color="#888" />
             <Text className="ml-1 text-gray-600 text-sm">
-              Mon-Fri: 11-18PM, Sat & Sun: 7-18PM
+              {scheduleText}
             </Text>
           </View>
           <View className="flex-row items-center mb-1">
             <Ionicons name="location-outline" size={18} color="#888" />
             <Text className="ml-1 text-gray-600 text-sm flex-1 flex-wrap">
-              Số 12, Đường A3, P. Long Thạnh Mỹ, Thủ Đức, TP. HCM
+              {stadium.address || 
+               (stadium.googleMap && !stadium.googleMap.includes('maps.google.com') ? stadium.googleMap : '') || 
+               "Địa chỉ chưa cập nhật"}
             </Text>
           </View>
-          <TouchableOpacity className="mt-2 self-start bg-green-50 rounded-lg px-4 py-1.5">
-            <Text className="text-green-600 font-bold text-sm">
-              Xem trên bản đồ
-            </Text>
-          </TouchableOpacity>
+          {(stadium.googleMap || stadium.address) && (
+            <TouchableOpacity 
+              className="mt-2 self-start bg-green-50 rounded-lg px-4 py-1.5"
+              onPress={() => {
+                const query = encodeURIComponent(stadium.address || stadium.googleMap || stadium.name);
+                const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+                // TODO: Thêm logic mở link hoặc navigate tới map screen
+                console.log('Open map:', url);
+              }}
+            >
+              <Text className="text-green-600 font-bold text-sm">
+                📍 Xem trên bản đồ
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Sports */}
@@ -97,21 +174,199 @@ export default function StadiumDetail() {
           <Text className="text-gray-500 text-xs mb-1">
             (Nhấn để xem bảng giá)
           </Text>
-          <StadiumSports sports={sports} />
+          <StadiumSports sports={stadiumSports} />
         </View>
 
         {/* Ratings & Reviews */}
         <View className="h-px bg-gray-200 my-3" />
         <View className="px-4 pt-2">
-          <StadiumRatings rating={4.8} />
+          <StadiumRatings rating={stadium.rating || 0} />
           <StadiumReviews reviews={reviews} />
         </View>
+
+        {/* Stadium Info */}
+        {stadium.description && (
+          <>
+            <View className="h-px bg-gray-200 my-3" />
+            <View className="px-4 pt-2">
+              <Text className="font-bold text-base text-gray-900 mb-2">Mô tả</Text>
+              <Text className="text-gray-600 text-sm leading-5">
+                {stadium.description}
+              </Text>
+            </View>
+          </>
+        )}
+
+        {/* Additional Info */}
+        {stadium.otherInfo && (
+          <>
+            <View className="h-px bg-gray-200 my-3" />
+            <View className="px-4 pt-2">
+              <Text className="font-bold text-base text-gray-900 mb-2">Thông tin thêm</Text>
+              <Text className="text-gray-600 text-sm leading-5">
+                {stadium.otherInfo}
+              </Text>
+            </View>
+          </>
+        )}
+
+        {/* Pricing */}
+        {stadium.price && (
+          <>
+            <View className="h-px bg-gray-200 my-3" />
+            <View className="px-4 pt-2">
+              <Text className="font-bold text-base text-gray-900 mb-2">Giá thuê</Text>
+              <View className="bg-green-50 rounded-lg p-3">
+                <Text className="text-green-700 font-bold text-lg">
+                  {stadium.price.toLocaleString('vi-VN')}đ/giờ
+                </Text>
+                {stadium.area && (
+                  <Text className="text-green-600 text-sm mt-1">
+                    Diện tích: {stadium.area}m²
+                  </Text>
+                )}
+                {stadium.numberOfFields && (
+                  <Text className="text-green-600 text-sm">
+                    Số sân: {stadium.numberOfFields}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* Payment Info */}
+        {(stadium.bank || stadium.accountName || stadium.accountNumber || (stadium.otherPayments && stadium.otherPayments.length > 0)) && (
+          <>
+            <View className="h-px bg-gray-200 my-3" />
+            <View className="px-4 pt-2">
+              <Text className="font-bold text-base text-gray-900 mb-2">Thông tin thanh toán</Text>
+              
+              {/* Bank info */}
+              {stadium.bank && (
+                <View className="bg-green-50 rounded-lg p-3 mb-3">
+                  <Text className="font-medium text-green-700 mb-1">Chuyển khoản ngân hàng:</Text>
+                  <Text className="text-gray-700 text-sm">
+                    🏦 Ngân hàng: {stadium.bank}
+                  </Text>
+                  {stadium.accountName && (
+                    <Text className="text-gray-700 text-sm">
+                      👤 Chủ tài khoản: {stadium.accountName}
+                    </Text>
+                  )}
+                  {stadium.accountNumber && (
+                    <Text className="text-gray-700 text-sm">
+                      💳 Số tài khoản: {stadium.accountNumber}
+                    </Text>
+                  )}
+                </View>
+              )}
+              
+              {/* Other payment methods */}
+              {stadium.otherPayments && stadium.otherPayments.length > 0 && (
+                <View>
+                  <Text className="font-medium text-gray-700 mb-2">Phương thức thanh toán khác:</Text>
+                  {stadium.otherPayments.map((payment: string, index: number) => (
+                    <View key={index} className="bg-blue-50 rounded-lg p-2 mb-2">
+                      <Text className="text-blue-700 text-sm">💰 {payment}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </>
+        )}
+
+        {/* Pricing Images */}
+        {stadium.pricingImages && stadium.pricingImages.length > 0 && (
+          <>
+            <View className="h-px bg-gray-200 my-3" />
+            <View className="px-4 pt-2">
+              <Text className="font-bold text-base text-gray-900 mb-2">Bảng giá chi tiết</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View className="flex-row">
+                  {stadium.pricingImages.map((imageUrl: string, index: number) => (
+                    <View key={index} className="mr-3">
+                      <Image
+                        source={{ uri: imageUrl }}
+                        className="w-64 h-40 rounded-lg"
+                        resizeMode="cover"
+                      />
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          </>
+        )}
+
+        {/* Gallery */}
+        {stadium.galleryUrls && stadium.galleryUrls.length > 0 && (
+          <>
+            <View className="h-px bg-gray-200 my-3" />
+            <View className="px-4 pt-2">
+              <Text className="font-bold text-base text-gray-900 mb-2">Hình ảnh sân bóng</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View className="flex-row">
+                  {stadium.galleryUrls.map((imageUrl: string, index: number) => (
+                    <View key={index} className="mr-3">
+                      <Image
+                        source={{ uri: imageUrl }}
+                        className="w-48 h-32 rounded-lg"
+                        resizeMode="cover"
+                      />
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          </>
+        )}
+
+        {/* Banner */}
+        {stadium.bannerUrl && (
+          <>
+            <View className="h-px bg-gray-200 my-3" />
+            <View className="px-4 pt-2">
+              <Text className="font-bold text-base text-gray-900 mb-2">Banner</Text>
+              <Image
+                source={{ uri: stadium.bannerUrl }}
+                className="w-full h-32 rounded-lg"
+                resizeMode="cover"
+              />
+            </View>
+          </>
+        )}
 
         {/* Contact */}
         <View className="h-px bg-gray-200 my-3" />
         <View className="px-4 pt-2">
           <Text className="font-bold text-base text-gray-900">Liên hệ</Text>
-          <StadiumContact phone="0123456789" email="abc@gmail.com" />
+          <StadiumContact 
+            phone={stadium.phone || "Chưa cập nhật"} 
+            email={stadium.email || "Chưa cập nhật"} 
+          />
+          
+          {/* Other contacts */}
+          {stadium.otherContacts && stadium.otherContacts.length > 0 && (
+            <View className="mt-3">
+              <Text className="font-medium text-gray-700 mb-2">Liên hệ khác:</Text>
+              {stadium.otherContacts.map((contact: string, index: number) => (
+                <Text key={index} className="text-gray-600 text-sm mb-1">
+                  • {contact}
+                </Text>
+              ))}
+            </View>
+          )}
+          
+          {/* Website */}
+          {stadium.website && (
+            <TouchableOpacity className="mt-3 bg-blue-50 rounded-lg p-3">
+              <Text className="text-blue-600 font-medium">
+                🌐 {stadium.website}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
       {/* Fixed bottom button */}
