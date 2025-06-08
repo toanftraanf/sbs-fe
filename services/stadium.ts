@@ -54,6 +54,172 @@ export async function getStadiumsByUser(userId: number): Promise<Stadium[]> {
   }
 }
 
+// Get stadium by ID
+export async function getStadiumById(id: number): Promise<Stadium> {
+  console.log('Fetching stadium for id:', id);
+  const query = `
+    query GetStadium($id: Int!) {
+      stadium(id: $id) {
+        id
+        name
+        googleMap
+        phone
+        email
+        website
+        otherContacts
+        description
+        startTime
+        endTime
+        otherInfo
+        sports
+        bank
+        accountName
+        accountNumber
+        otherPayments
+        pricingImages
+        avatarUrl
+        bannerUrl
+        galleryUrls
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(query, { id });
+    console.log('Stadium response data:', JSON.stringify(data, null, 2));
+    return data.stadium;
+  } catch (error) {
+    console.error('Error fetching stadium:', error);
+    throw error;
+  }
+}
+
+// Get all stadiums (no filter)
+export async function getAllStadiums(): Promise<Stadium[]> {
+  console.log('Fetching all stadiums');
+  const query = `
+    query GetAllStadiums($input: StadiumSearchInput!) {
+      searchStadiums(input: $input) {
+        id
+        name
+        googleMap
+        phone
+        email
+        website
+        otherContacts
+        description
+        startTime
+        endTime
+        otherInfo
+        sports
+        bank
+        accountName
+        accountNumber
+        otherPayments
+        pricingImages
+        avatarUrl
+        bannerUrl
+        galleryUrls
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(query, { 
+      input: {}
+    });
+    console.log('All stadiums response data:', JSON.stringify(data, null, 2));
+    return data.searchStadiums;
+  } catch (error) {
+    console.error('Error fetching all stadiums:', error);
+    throw error;
+  }
+}
+
+// Get stadiums by address search
+export async function getStadiumsByAddress(searchAddress: string): Promise<Stadium[]> {
+  console.log('Fetching stadiums by address:', searchAddress);
+  const query = `
+    query GetStadiumsByAddress($input: StadiumSearchInput!) {
+      searchStadiums(input: $input) {
+        id
+        name
+        googleMap
+        phone
+        email
+        website
+        otherContacts
+        description
+        startTime
+        endTime
+        otherInfo
+        sports
+        bank
+        accountName
+        accountNumber
+        otherPayments
+        pricingImages
+        avatarUrl
+        bannerUrl
+        galleryUrls
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(query, { 
+      input: {
+        searchAddress
+      }
+    });
+    console.log('Stadiums by address response data:', JSON.stringify(data, null, 2));
+    return data.searchStadiums;
+  } catch (error) {
+    console.error('Error fetching stadiums by address:', error);
+    throw error;
+  }
+}
+
+// Get stadiums with address search
+export async function getStadiumsWithSearch(searchAddress?: string): Promise<Stadium[]> {
+  console.log('Fetching stadiums with search address:', searchAddress);
+  const query = `
+    query GetStadiumsWithSearch($input: StadiumSearchInput!) {
+      searchStadiums(input: $input) {
+        id
+        name
+        googleMap
+        phone
+        email
+        website
+        otherContacts
+        description
+        startTime
+        endTime
+        otherInfo
+        sports
+        bank
+        accountName
+        accountNumber
+        otherPayments
+        pricingImages
+        avatarUrl
+        bannerUrl
+        galleryUrls
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(query, { 
+      input: {
+        searchAddress
+      }
+    });
+    console.log('Stadiums with search response data:', JSON.stringify(data, null, 2));
+    return data.searchStadiums;
+  } catch (error) {
+    console.error('Error fetching stadiums with search:', error);
+    throw error;
+  }
+}
+
 // Fetch functions
 export async function getStadiumStep1(id: number): Promise<StadiumStep1Data> {
   console.log('Fetching stadium step 1 for id:', id);
@@ -208,3 +374,185 @@ export const updateStadiumStep3 = async (input: {
     },
   });
 };
+
+// Update stadium general information
+export async function updateStadium(input: {
+  id: number;
+  name?: string;
+  googleMap?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  otherContacts?: string[];
+  description?: string;
+  startTime?: string;
+  endTime?: string;
+  otherInfo?: string;
+  sports?: string[];
+}): Promise<Stadium> {
+  console.log('Updating stadium with id:', input.id, 'data:', input);
+  const mutation = `
+    mutation UpdateStadium($updateStadiumInput: UpdateStadiumInput!) {
+      updateStadium(updateStadiumInput: $updateStadiumInput) {
+        id
+        name
+        googleMap
+        phone
+        email
+        website
+        otherContacts
+        description
+        startTime
+        endTime
+        otherInfo
+        sports
+        bank
+        accountName
+        accountNumber
+        otherPayments
+        pricingImages
+        avatarUrl
+        bannerUrl
+        galleryUrls
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(mutation, { updateStadiumInput: input });
+    console.log('Update stadium response data:', JSON.stringify(data, null, 2));
+    return data.updateStadium;
+  } catch (error) {
+    console.error('Error updating stadium:', error);
+    throw error;
+  }
+}
+
+// Delete stadium
+export async function deleteStadium(id: number): Promise<Stadium> {
+  console.log('Deleting stadium with id:', id);
+  const mutation = `
+    mutation RemoveStadium($id: Int!) {
+      removeStadium(id: $id) {
+        id
+        name
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(mutation, { id });
+    console.log('Delete stadium response data:', JSON.stringify(data, null, 2));
+    return data.removeStadium;
+  } catch (error) {
+    console.error('Error deleting stadium:', error);
+    throw error;
+  }
+}
+
+// Get stadiums by location with radius using new API
+export async function getStadiumsByLocation(address: string, radiusKm: number = 5): Promise<Stadium[]> {
+  console.log('Fetching stadiums by location:', address, 'radius:', radiusKm);
+  const query = `
+    query GetStadiumsByLocation($input: FindStadiumsByAddressInput!) {
+      stadiumsByAddress(input: $input) {
+        id
+        name
+        description
+        address
+        googleMap
+        phone
+        email
+        website
+        otherContacts
+        startTime
+        endTime
+        otherInfo
+        sports
+        price
+        area
+        numberOfFields
+        rating
+        status
+        images
+        bank
+        accountName
+        accountNumber
+        otherPayments
+        pricingImages
+        avatarUrl
+        bannerUrl
+        galleryUrls
+        userId
+        user {
+          id
+          email
+        }
+        createdAt
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(query, { 
+      input: {
+        address,
+        radiusKm
+      }
+    });
+    console.log('Stadiums by location response data:', JSON.stringify(data, null, 2));
+    return data.stadiumsByAddress;
+  } catch (error) {
+    console.error('Error fetching stadiums by location:', error);
+    throw error;
+  }
+}
+
+// Get stadiums by name search
+export async function getStadiumsByName(name: string): Promise<Stadium[]> {
+  console.log('Fetching stadiums by name:', name);
+  const query = `
+    query GetStadiumsByName($name: String!) {
+      stadiumsByName(name: $name) {
+        id
+        name
+        description
+        address
+        googleMap
+        phone
+        email
+        website
+        otherContacts
+        startTime
+        endTime
+        otherInfo
+        sports
+        price
+        area
+        numberOfFields
+        rating
+        status
+        images
+        bank
+        accountName
+        accountNumber
+        otherPayments
+        pricingImages
+        avatarUrl
+        bannerUrl
+        galleryUrls
+        userId
+        user {
+          id
+          email
+        }
+        createdAt
+      }
+    }
+  `;
+  try {
+    const data = await graphqlRequest(query, { name });
+    console.log('Stadiums by name response data:', JSON.stringify(data, null, 2));
+    return data.stadiumsByName;
+  } catch (error) {
+    console.error('Error fetching stadiums by name:', error);
+    throw error;
+  }
+}
