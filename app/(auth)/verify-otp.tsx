@@ -17,7 +17,6 @@ export default function VerifyOtp() {
     isLoading,
     error,
     timeLeft,
-    isTimerRunning,
     formatTime,
     handleResendOtp,
     handleVerifyOtp,

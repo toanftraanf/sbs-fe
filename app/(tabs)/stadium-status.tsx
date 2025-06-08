@@ -1,30 +1,20 @@
-import React, { useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, Modal, StyleSheet } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useMutation, gql } from "@apollo/client";
+import { ADD_STADIUM, GET_OWNER_STADIUMS } from "@/graphql";
+import { useMutation, useQuery } from "@apollo/client";
 import { Ionicons } from "@expo/vector-icons";
-import SportNowHeader from "../../components/SportNowHeader";
 import { router } from "expo-router";
-
-const GET_OWNER_STADIUMS = gql`
-  query GetStadiumsByUser($ownerId: Int!) {
-    sports(ownerId: $ownerId) {
-      id
-      name
-      location
-    }
-  }
-`;
-
-const ADD_STADIUM = gql`
-  mutation AddStadium($input: CreateStadiumInput!) {
-    createStadium(createStadiumInput: $input) {
-      id
-      name
-      location
-    }
-  }
-`;
+import React, { useState } from "react";
+import {
+  Alert,
+  FlatList,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import SportNowHeader from "../../components/SportNowHeader";
 
 export default function StadiumStatus() {
   const { user } = useAuth();
@@ -68,36 +58,128 @@ export default function StadiumStatus() {
     });
   };
 
+  const renderStadiumItem = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-100"
+      onPress={() => {
+        console.log("Navigating to stadium detail with ID:", item.id);
+        router.push(`/(auth)/stadium-information-step1?stadiumId=${item.id}`);
+      }}
+    >
+      <View className="flex-row justify-between items-center">
+        <View className="flex-1">
+          <Text className="font-InterBold text-lg text-gray-800">
+            {item.name}
+          </Text>
+          <Text className="text-gray-500 mt-1">
+            {item.location || "Chưa có địa chỉ"}
+          </Text>
+        </View>
+        <View className="flex-row items-center">
+          <View className="bg-green-100 px-3 py-1 rounded-full mr-3">
+            <Text className="text-green-600 text-sm font-InterSemiBold">
+              Hoạt động
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View className="flex-1 bg-gray-50">
+        <SportNowHeader title="Quản lý sân" />
+        <View className="flex-1 justify-center items-center">
+          <Text>Đang tải...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const stadiums = data?.sports || [];
+
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <SportNowHeader title="Trạng thái sân" showBack />
-      <View style={{ flex: 1, padding: 16 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={{ fontSize: 22, fontWeight: "bold" }}>Danh sách sân tập của bạn</Text>
+    <View className="flex-1 bg-gray-50">
+      <SportNowHeader title="Quản lý sân" />
+
+      <View className="flex-1 px-4 pt-6">
+        <View className="flex-row items-center justify-between mb-6">
+          <Text className="text-2xl font-InterBold text-gray-800">
+            Sân của tôi
+          </Text>
           <TouchableOpacity
+            onPress={() => setModalVisible(true)}
             style={styles.headerAddBtn}
-            onPress={() => router.push('/(auth)/stadium-information-step1')}
-            activeOpacity={0.8}
           >
-            <Ionicons name="add" size={28} color="#fff" />
+            <Ionicons name="add" size={24} color="white" />
           </TouchableOpacity>
         </View>
-        {loading ? (
-          <Text>Đang tải...</Text>
+
+        {stadiums.length === 0 ? (
+          <View className="flex-1 justify-center items-center">
+            <Ionicons name="business-outline" size={64} color="#9CA3AF" />
+            <Text className="text-gray-500 text-lg mt-4">Chưa có sân nào</Text>
+            <Text className="text-gray-400 text-center mt-2 px-8">
+              Thêm sân đầu tiên để bắt đầu quản lý dịch vụ của bạn
+            </Text>
+          </View>
         ) : (
           <FlatList
-            data={data?.sports || []}
+            data={stadiums}
+            renderItem={renderStadiumItem}
             keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <View style={{ padding: 12, borderBottomWidth: 1, borderColor: "#eee" }}>
-                <Text style={{ fontSize: 16, fontWeight: "bold" }}>{item.name}</Text>
-                <Text style={{ color: "#666" }}>{item.location}</Text>
-              </View>
-            )}
-            ListEmptyComponent={<Text>Chưa có sân nào.</Text>}
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text className="text-xl font-InterBold mb-4">Thêm sân mới</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Tên sân"
+              value={stadiumName}
+              onChangeText={setStadiumName}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Địa chỉ (không bắt buộc)"
+              value={stadiumLocation}
+              onChangeText={setStadiumLocation}
+            />
+
+            <View className="flex-row mt-4">
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: "#f3f4f6" }]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text className="font-InterSemiBold text-gray-600">Hủy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: "#5A983B" }]}
+                onPress={handleAddStadium}
+                disabled={adding}
+              >
+                <Text className="font-InterSemiBold text-white">
+                  {adding ? "Đang thêm..." : "Thêm sân"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

@@ -2,13 +2,22 @@ import ProfileHeader from "@/components/ProfileHeader";
 import SettingsMenuItem from "@/components/SettingsMenuItem";
 import SettingsSection from "@/components/SettingsSection";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
-import { Alert, SafeAreaView, ScrollView } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 const Setting = () => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
+  const { profile, loading, error } = useUserProfile();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -62,12 +71,38 @@ const Setting = () => {
   };
 
   const getUserDisplayName = () => {
-    if (user?.phoneNumber) {
-      // Format phone number for display
-      return `User ${user.phoneNumber.slice(-4)}`;
+    if (profile?.fullName) {
+      return profile.fullName;
     }
-    return "Nguyễn Văn A";
+    if (profile?.phoneNumber) {
+      // Format phone number for display
+      return `User ${profile.phoneNumber.slice(-4)}`;
+    }
+    return "Người dùng";
   };
+
+  const getUserSubtitle = () => {
+    if (profile?.email) {
+      return profile.email;
+    }
+    if (profile?.phoneNumber) {
+      return profile.phoneNumber;
+    }
+    return "Profile của bạn";
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <>
+        <StatusBar style="dark" backgroundColor="#F9FAFB" />
+        <SafeAreaView className="flex-1 bg-gray-50 justify-center items-center">
+          <ActivityIndicator size="large" color="#5A983B" />
+          <Text className="mt-4 text-gray-600">Đang tải thông tin...</Text>
+        </SafeAreaView>
+      </>
+    );
+  }
 
   return (
     <>
@@ -76,7 +111,7 @@ const Setting = () => {
         {/* Profile Header */}
         <ProfileHeader
           name={getUserDisplayName()}
-          subtitle="Profile của bạn"
+          subtitle={getUserSubtitle()}
           onPress={() => {
             // TODO: Navigate to profile edit screen
             Alert.alert(
@@ -85,6 +120,15 @@ const Setting = () => {
             );
           }}
         />
+
+        {/* Error message if profile fetch failed */}
+        {error && (
+          <View className="bg-red-50 mx-4 mt-4 p-3 rounded-lg border border-red-200">
+            <Text className="text-red-700 text-sm text-center">
+              Không thể tải thông tin profile. Hiển thị thông tin cơ bản.
+            </Text>
+          </View>
+        )}
 
         <ScrollView
           className="flex-1 px-4 pt-4"

@@ -63,22 +63,60 @@ export const useOtpVerification = ({ phoneNumber }: UseOtpVerificationProps) => 
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length !== 6) {
-      setError("Vui lòng nhập mã OTP đầy đủ (6 chữ số)");
-      return;
-    }
+    // if (!otp || otp.length !== 6) {
+    //   setError("Vui lòng nhập mã OTP đầy đủ (6 chữ số)");
+    //   return;
+    // }
     try {
       setIsLoading(true);
       setError(null);
 
       const result = await authService.login(phoneNumber, otp);
+      console.log("Login result:", result);
+      
       if (result) {
         setUser(result);
+
+        let shouldRedirectToProfile = false;
+
+        // Check if user needs to complete their profile
+        try {
+          const userProfile = await authService.getUserProfile(parseInt(result.id));
+          
+          // Check if user has essential profile information
+          const hasFullName = userProfile?.fullName && userProfile.fullName.trim() !== "";
+          const hasDob = userProfile?.dob && userProfile.dob !== null && userProfile.dob !== undefined;
+          const hasSex = userProfile?.sex && userProfile.sex !== null && userProfile.sex !== undefined;
+          
+          console.log("Profile check details:", {
+            hasFullName,
+            hasDob,
+            hasSex,
+            fullName: userProfile?.fullName,
+            dob: userProfile?.dob,
+            sex: userProfile?.sex,
+            userProfileExists: !!userProfile
+          });
+          
+          if (!hasFullName || !hasDob || !hasSex) {
+            shouldRedirectToProfile = true;
+          }
+        } catch (profileError) {
+          console.log("❌ Error fetching user profile, assuming incomplete:", profileError);
+          shouldRedirectToProfile = true;
+        }
+
+        // Navigate based on profile completion
         setTimeout(() => {
-          if (result.role === "OWNER") {
-            router.replace("/(tabs)/stadium-status");
+          if (shouldRedirectToProfile) {
+            router.replace("/(auth)/user-information-step1");
           } else {
-            router.replace("/(tabs)/stadium-booking");
+            // User has complete profile, navigate to appropriate tab
+            if (result.role === "OWNER") {
+              router.replace("/(tabs)/stadium-status");
+            } else {
+              router.replace("/(tabs)");
+            }
           }
         }, 100);
       }

@@ -1,82 +1,16 @@
-import { gql } from "@apollo/client";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apolloClient } from "../config/apollo";
-
-export interface AuthResponse {
-  success: boolean;
-  data?: any;
-  error?: string;
-}
-
-const GET_GOOGLE_AUTH_URL = gql`
-  query {
-    googleAuthUrl
-  }
-`;
-
-const GOOGLE_AUTH_MOBILE = gql`
-  mutation GoogleAuthMobile($idToken: String!) {
-    googleAuthMobile(idToken: $idToken) {
-      id
-      email
-      phoneNumber
-      status
-      isVerified
-    }
-  }
-`;
-
-const CHECK_EXISTING_USER = gql`
-  mutation CheckExistingUser($phoneNumber: String!) {
-    checkExistingUser(phoneNumber: $phoneNumber) {
-      id
-      phoneNumber
-      status
-      isVerified
-    }
-  }
-`;
-
-const AUTHENTICATE = gql`
-  mutation Authenticate($phoneNumber: String!, $otp: String!) {
-    authenticate(phoneNumber: $phoneNumber, otp: $otp) {
-      user {
-        id
-        phoneNumber
-        status
-        isVerified
-        role
-      }
-      accessToken
-      refreshToken
-    }
-  }
-`;
-
-const LOGOUT_MUTATION = gql`
-  mutation Logout($accessToken: String!, $refreshToken: String) {
-    logout(accessToken: $accessToken, refreshToken: $refreshToken)
-  }
-`;
-
-const RESET_OTP = gql`
-  mutation ResetOTP($phoneNumber: String!) {
-    resetOTP(phoneNumber: $phoneNumber)
-  }
-`;
-
-const REGISTER_OWNER = gql`
-  mutation RegisterOwner($phoneNumber: String!, $fullName: String!) {
-    registerOwner(phoneNumber: $phoneNumber, fullName: $fullName) {
-      id
-      phoneNumber
-      fullName
-      status
-      isVerified
-      role
-    }
-  }
-`;
+import {
+  AUTHENTICATE,
+  CHECK_EXISTING_USER,
+  GET_GOOGLE_AUTH_URL,
+  GET_USER,
+  GOOGLE_AUTH_MOBILE,
+  LOGOUT_MUTATION,
+  REGISTER_OWNER,
+  RESET_OTP,
+  UPDATE_USER_MUTATION,
+} from "../graphql";
 
 class AuthService {
   private static instance: AuthService;
@@ -90,7 +24,6 @@ class AuthService {
     return AuthService.instance;
   }
 
-  // Token management methods
   private async storeTokens(accessToken: string, refreshToken?: string): Promise<void> {
     try {
       await AsyncStorage.setItem('accessToken', accessToken);
@@ -102,6 +35,15 @@ class AuthService {
     }
   }
 
+  private async clearStoredTokens(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem('accessToken');
+      await AsyncStorage.removeItem('refreshToken');
+    } catch (error) {
+      console.error('Error clearing tokens:', error);
+    }
+  }
+
   private async getStoredTokens(): Promise<{ accessToken: string | null; refreshToken: string | null }> {
     try {
       const accessToken = await AsyncStorage.getItem('accessToken');
@@ -110,14 +52,6 @@ class AuthService {
     } catch (error) {
       console.error('Error retrieving tokens:', error);
       return { accessToken: null, refreshToken: null };
-    }
-  }
-
-  private async clearStoredTokens(): Promise<void> {
-    try {
-      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
-    } catch (error) {
-      console.error('Error clearing tokens:', error);
     }
   }
 
@@ -301,6 +235,130 @@ class AuthService {
   public async isAuthenticated(): Promise<boolean> {
     const { accessToken } = await this.getStoredTokens();
     return !!accessToken;
+  }
+
+  // Method to get detailed user profile information
+  public async getUserProfile(userId: number): Promise<any> {
+    try {
+      const { data } = await apolloClient.query({
+        query: GET_USER,
+        variables: { id: userId },
+        fetchPolicy: 'network-only' // Always fetch fresh data
+      });
+
+      if (data?.user) {
+        return data.user;
+      }
+
+      throw new Error("User not found");
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      throw error instanceof Error
+        ? error
+        : new Error("An unknown error occurred while fetching user profile");
+    }
+  }
+
+  // Method to update user profile information
+  public async updateUserProfile(input: {
+    userId: number;
+    fullName?: string;
+    dob?: string;
+    sex?: "MALE" | "FEMALE" | "OTHER";
+    address?: string;
+    userType?: "PLAYER" | "COACH";
+    level?: string;
+  }): Promise<any> {
+    try {
+      // Convert userId to id as expected by backend
+      const updateUserInput = {
+        id: input.userId,
+        fullName: input.fullName,
+        dob: input.dob,
+        sex: input.sex,
+        address: input.address,
+        userType: input.userType,
+        level: input.level,
+      };
+
+      const { data } = await apolloClient.mutate({
+        mutation: UPDATE_USER_MUTATION,
+        variables: { updateUserInput },
+      });
+
+      if (data?.updateUser) {
+        return data.updateUser;
+      }
+
+      throw new Error("Failed to update user profile");
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      throw error instanceof Error
+        ? error
+        : new Error("An unknown error occurred while updating user profile");
+    }
+  }
+
+  // Method to update user profile with sports
+  public async updateUserProfileWithSports(userProfileData: {
+    userId: number;
+    fullName: string;
+    dob: string;
+    sex: "MALE" | "FEMALE" | "OTHER";
+    address: string;
+    userType: "PLAYER" | "COACH";
+    level: string;
+    sportIds: number[];
+  }): Promise<any> {
+    try {
+      // First update the user profile
+      const updatedUser = await this.updateUserProfile({
+        userId: userProfileData.userId,
+        fullName: userProfileData.fullName,
+        dob: userProfileData.dob,
+        sex: userProfileData.sex,
+        address: userProfileData.address,
+        userType: userProfileData.userType,
+        level: userProfileData.level,
+      });
+
+      // Then add favorite sports (if we have sports service available)
+      if (userProfileData.sportIds && userProfileData.sportIds.length > 0) {
+        // Import sports service dynamically to avoid circular dependency
+        const sportsService = await import("./sports");
+        
+        // First get all available sports to validate IDs
+        const availableSports = await sportsService.default.getAllSports();
+        const validSportIds = availableSports.map(sport => sport.id);
+        
+        // Add each sport as favorite, but only if it exists
+        for (const sportId of userProfileData.sportIds) {
+          if (!validSportIds.includes(sportId)) {
+            console.warn(`Sport ID ${sportId} does not exist in backend, skipping...`);
+            continue;
+          }
+          
+          try {
+            const result = await sportsService.default.addFavoriteSport(userProfileData.userId, sportId);
+            if (result) {
+              console.log(`Successfully added sport ${sportId} as favorite`);
+            } else {
+              console.warn(`Sport ${sportId} favorite creation returned null, but may still be successful`);
+            }
+          } catch (error) {
+            console.warn(`Failed to add sport ${sportId} as favorite:`, error);
+            // Continue with other sports even if one fails
+          }
+        }
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user profile with sports:", error);
+      throw error instanceof Error
+        ? error
+        : new Error("An unknown error occurred while updating user profile");
+    }
   }
 }
 

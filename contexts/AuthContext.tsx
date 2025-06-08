@@ -2,19 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { apolloClient } from "../config/apollo";
 import authService from "../services/auth";
-
-type User = {
-  id: string;
-  phoneNumber: string;
-  role: "OWNER" | "CUSTOMER";
-};
-
-type AuthContextType = {
-  user: User | null;
-  setUser: (user: User | null) => void;
-  logout: () => Promise<void>;
-  isLoading: boolean;
-};
+import { AuthContextType, User } from "../types";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

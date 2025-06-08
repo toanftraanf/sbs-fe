@@ -1,74 +1,244 @@
+import AppButton from "@/components/AppButton";
 import SportNowHeader from "@/components/SportNowHeader";
+import { useAuth } from "@/contexts/AuthContext";
+import authService from "@/services/auth";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import {
-    Image,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-
-const SPORTS = [
-  { key: "badminton", label: "Cầu lông", icon: require("../../assets/icons/google_icon.png") },
-  { key: "tennis", label: "Quần vợt", icon: require("../../assets/icons/google_icon.png") },
-  { key: "tabletennis", label: "Bóng bàn", icon: require("../../assets/icons/google_icon.png") },
-  { key: "pickleball", label: "Pickleball", icon: require("../../assets/icons/google_icon.png") },
-];
+import { useEffect, useState } from "react";
+import { Alert, ScrollView, Text, View } from "react-native";
 
 export default function UserInformationStep2() {
+  const { user, setUser } = useAuth();
   const params = useLocalSearchParams();
-  const [selectedSports, setSelectedSports] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [parsedSports, setParsedSports] = useState<number[]>([]);
 
-  const toggleSport = (key: string) => {
-    setSelectedSports((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
+  // Parse the sports data from step 1
+  useEffect(() => {
+    if (params.sports) {
+      try {
+        const sports = JSON.parse(params.sports as string);
+        setParsedSports(sports);
+      } catch (error) {
+        console.error("Error parsing sports data:", error);
+        setParsedSports([]);
+      }
+    }
+  }, [params.sports]);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN");
   };
 
-  const handleContinue = () => {
-    if (selectedSports.length === 0) {
-      alert("Vui lòng chọn ít nhất một môn thể thao");
+  const getGenderLabel = (gender: string) => {
+    const labels: { [key: string]: string } = {
+      male: "Nam",
+      female: "Nữ",
+      other: "Khác",
+    };
+    return labels[gender] || gender;
+  };
+
+  const getRoleLabel = (role: string) => {
+    const labels: { [key: string]: string } = {
+      player: "Người chơi",
+      coach: "Huấn luyện viên",
+    };
+    return labels[role] || role;
+  };
+
+  const getSportsLabels = (sportIds: number[]) => {
+    const sportsMap: { [key: number]: string } = {
+      1: "Cầu lông",
+      2: "Quần vợt",
+      3: "Bóng bàn",
+      4: "Pickleball",
+    };
+    return sportIds.map((id) => sportsMap[id] || `Sport ${id}`).join(", ");
+  };
+
+  const handleComplete = async () => {
+    if (!user?.id) {
+      Alert.alert(
+        "Lỗi",
+        "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại."
+      );
       return;
     }
-    // Here you can submit all data (params + selectedSports) or navigate further
-    // Example: router.push('/(auth)/verify-otp');
-    alert("Thông tin đã được lưu!\n" + JSON.stringify({ ...params, selectedSports }, null, 2));
+
+    setIsLoading(true);
+
+    try {
+      // Convert data to backend format
+      const sexMapping: { [key: string]: "MALE" | "FEMALE" | "OTHER" } = {
+        male: "MALE",
+        female: "FEMALE",
+        other: "OTHER",
+      };
+
+      const userTypeMapping: { [key: string]: "PLAYER" | "COACH" } = {
+        player: "PLAYER",
+        coach: "COACH",
+      };
+
+      const levelMapping: { [key: string]: string } = {
+        beginner: "BEGINNER",
+        intermediate: "INTERMEDIATE",
+        advanced: "ADVANCED",
+        pro: "PRO",
+      };
+
+      // Save user information to backend
+      const updatedUser = await authService.updateUserProfileWithSports({
+        userId: parseInt(user.id),
+        fullName: (params.fullName as string)?.trim(),
+        dob: new Date(params.dateOfBirth as string).toISOString().split("T")[0],
+        sex: sexMapping[params.gender as string] || "OTHER",
+        address: (params.address as string)?.trim(),
+        userType: userTypeMapping[params.role as string] || "PLAYER",
+        level: levelMapping[params.level as string] || "BEGINNER",
+        sportIds: parsedSports,
+      });
+
+      // Update user context with new data
+      setUser({
+        ...user,
+        fullName: updatedUser.fullName,
+        dob: updatedUser.dob,
+        sex: updatedUser.sex,
+        address: updatedUser.address,
+        userType: updatedUser.userType,
+        level: updatedUser.level,
+      });
+
+      Alert.alert(
+        "Thành công",
+        "Thông tin cá nhân đã được cập nhật thành công!",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Navigate based on user role
+              if (user.role === "OWNER") {
+                // Owner users go to stadium information setup
+                router.push("/(auth)/stadium-information-step1");
+              } else {
+                // Customer users go to main app tabs
+                router.push("/(tabs)");
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("Error saving user information:", error);
+      Alert.alert("Lỗi", "Có lỗi xảy ra khi lưu thông tin. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <View className="flex-1 bg-white">
-      <SportNowHeader title="Thông tin cá nhân" />
-      <ScrollView className="flex-1 px-6 pt-4">
-        <Text className="text-center text-gray-700 mb-4 mt-2">
-          Chọn các môn thể thao mà bạn yêu thích
+      <SportNowHeader title="Xác nhận thông tin" />
+      <ScrollView
+        className="flex-1 px-6 pt-4"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text className="text-center text-gray-700 mb-6 mt-2">
+          Vui lòng kiểm tra lại thông tin của bạn trước khi hoàn tất
         </Text>
-        <View className="flex-row flex-wrap justify-between mb-2">
-          {SPORTS.map((sport) => (
-            <TouchableOpacity
-              key={sport.key}
-              className={`w-[48%] aspect-square bg-white rounded-2xl mb-4 items-center justify-center border-2 ${selectedSports.includes(sport.key) ? 'border-primary' : 'border-gray-200'}`}
-              onPress={() => toggleSport(sport.key)}
-              activeOpacity={0.8}
-            >
-              <Image source={sport.icon} style={{ width: 56, height: 56, marginBottom: 12 }} resizeMode="contain" />
-              <Text className={`font-InterBold text-lg ${selectedSports.includes(sport.key) ? 'text-primary' : 'text-gray-700'}`}>{sport.label}</Text>
-            </TouchableOpacity>
-          ))}
+
+        {/* Summary Information */}
+        <View className="bg-gray-50 rounded-xl p-4 mb-6">
+          <Text className="font-InterBold text-lg mb-4 text-center">
+            Thông tin cá nhân
+          </Text>
+
+          <View className="space-y-3">
+            <View className="flex-row">
+              <Text className="font-InterSemiBold text-gray-600 w-24">
+                Tên:
+              </Text>
+              <Text className="font-InterRegular text-black flex-1">
+                {params.fullName || "Chưa nhập"}
+              </Text>
+            </View>
+
+            <View className="flex-row">
+              <Text className="font-InterSemiBold text-gray-600 w-24">
+                Ngày sinh:
+              </Text>
+              <Text className="font-InterRegular text-black flex-1">
+                {formatDate(params.dateOfBirth as string) || "Chưa chọn"}
+              </Text>
+            </View>
+
+            <View className="flex-row">
+              <Text className="font-InterSemiBold text-gray-600 w-24">
+                Giới tính:
+              </Text>
+              <Text className="font-InterRegular text-black flex-1">
+                {getGenderLabel(params.gender as string) || "Chưa chọn"}
+              </Text>
+            </View>
+
+            <View className="flex-row">
+              <Text className="font-InterSemiBold text-gray-600 w-24">
+                Địa chỉ:
+              </Text>
+              <Text className="font-InterRegular text-black flex-1">
+                {params.address || "Chưa nhập"}
+              </Text>
+            </View>
+
+            <View className="flex-row">
+              <Text className="font-InterSemiBold text-gray-600 w-24">
+                Tư cách:
+              </Text>
+              <Text className="font-InterRegular text-black flex-1">
+                {getRoleLabel(params.role as string) || "Chưa chọn"}
+              </Text>
+            </View>
+
+            <View className="flex-row">
+              <Text className="font-InterSemiBold text-gray-600 w-24">
+                Trình độ:
+              </Text>
+              <Text className="font-InterRegular text-black flex-1">
+                {params.level || "Chưa chọn"}
+              </Text>
+            </View>
+
+            <View className="flex-row">
+              <Text className="font-InterSemiBold text-gray-600 w-24">
+                Môn thể thao:
+              </Text>
+              <Text className="font-InterRegular text-black flex-1">
+                {getSportsLabels(parsedSports) || "Chưa chọn"}
+              </Text>
+            </View>
+          </View>
         </View>
-        {/* <TouchableOpacity
-          className="bg-primary rounded-2xl py-4 mb-8"
-          onPress={handleContinue}
-        >
-          <Text className="text-white text-center font-InterBold text-lg">Tiếp tục</Text>
-        </TouchableOpacity> */}
-        <TouchableOpacity
-          className="bg-primary rounded-2xl py-4 mb-8"
-          onPress={() => {router.push("/(auth)/stadium-information-step1")}}
-        >
-          <Text className="text-white text-center font-InterBold text-lg">Tiếp tục</Text>
-        </TouchableOpacity>
+
+        {/* Action Buttons */}
+        <View className="space-y-3 mb-8">
+          <AppButton
+            title={isLoading ? "Đang lưu..." : "Hoàn tất"}
+            filled
+            onPress={handleComplete}
+            disabled={isLoading}
+          />
+
+          <AppButton
+            title="Quay lại chỉnh sửa"
+            filled={false}
+            onPress={() => router.back()}
+            disabled={isLoading}
+          />
+        </View>
       </ScrollView>
     </View>
   );
-} 
+}
