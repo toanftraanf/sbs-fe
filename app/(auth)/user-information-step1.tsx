@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -32,51 +33,88 @@ export default function UserInformationStep1() {
     FAKE_USER.sports
   );
 
-  const handleContinue = () => {
-    // Validate required fields
+  // Validation state
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validateFields = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    // Full name validation
     if (!fullName || fullName.trim() === "") {
-      alert("Vui lòng nhập tên người dùng");
-      return;
+      newErrors.fullName = "Vui lòng nhập tên người dùng";
+    } else if (fullName.trim().length < 2) {
+      newErrors.fullName = "Tên phải có ít nhất 2 ký tự";
     }
 
+    // Date of birth validation
     if (!dateOfBirth) {
-      alert("Vui lòng chọn ngày sinh");
-      return;
+      newErrors.dateOfBirth = "Vui lòng chọn ngày sinh";
+    } else {
+      const age = new Date().getFullYear() - dateOfBirth.getFullYear();
+      if (age < 13) {
+        newErrors.dateOfBirth = "Bạn phải từ 13 tuổi trở lên";
+      } else if (age > 100) {
+        newErrors.dateOfBirth = "Vui lòng nhập ngày sinh hợp lệ";
+      }
     }
 
+    // Gender validation
     if (!gender) {
-      alert("Vui lòng chọn giới tính");
-      return;
+      newErrors.gender = "Vui lòng chọn giới tính";
     }
 
+    // Address validation
     if (!address || address.trim() === "") {
-      alert("Vui lòng nhập địa chỉ");
-      return;
+      newErrors.address = "Vui lòng nhập địa chỉ";
+    } else if (address.trim().length < 5) {
+      newErrors.address = "Địa chỉ phải có ít nhất 5 ký tự";
     }
 
+    // Level validation
     if (!level) {
-      alert("Vui lòng chọn trình độ");
-      return;
+      newErrors.level = "Vui lòng chọn trình độ";
     }
 
+    // Sports validation
     if (selectedSports.length === 0) {
-      alert("Vui lòng chọn ít nhất một môn thể thao");
-      return;
+      newErrors.sports = "Vui lòng chọn ít nhất một môn thể thao";
     }
 
-    // All validations passed, proceed to next step
-    router.push({
-      pathname: "/(auth)/user-information-step2",
-      params: {
-        fullName: fullName.trim(),
-        dateOfBirth: dateOfBirth.toISOString(),
-        gender,
-        address: address.trim(),
-        role,
-        level,
-        sports: JSON.stringify(selectedSports),
-      },
-    });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleContinue = async () => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    try {
+      if (!validateFields()) {
+        const firstError = Object.values(errors)[0];
+        Alert.alert("Thông tin không hợp lệ", firstError);
+        return;
+      }
+
+      // All validations passed, proceed to next step
+      router.push({
+        pathname: "/(auth)/user-information-step2",
+        params: {
+          fullName: fullName.trim(),
+          dateOfBirth: dateOfBirth!.toISOString(),
+          gender: gender!,
+          address: address.trim(),
+          role,
+          level: level!,
+          sports: JSON.stringify(selectedSports),
+        },
+      });
+    } catch (error) {
+      Alert.alert("Lỗi", "Có lỗi xảy ra. Vui lòng thử lại.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -102,20 +140,60 @@ export default function UserInformationStep1() {
           <AppTextInput
             placeholder="Họ và tên"
             value={fullName}
-            onChangeText={setFullName}
+            onChangeText={(text) => {
+              setFullName(text);
+              if (errors.fullName) {
+                const newErrors = { ...errors };
+                delete newErrors.fullName;
+                setErrors(newErrors);
+              }
+            }}
             containerClassName="mb-0"
           />
+          {errors.fullName && (
+            <Text className="text-red-500 text-sm mt-1">{errors.fullName}</Text>
+          )}
         </View>
 
-        <DatePickerField
-          label="Độ tuổi"
-          value={dateOfBirth}
-          onChange={setDateOfBirth}
-          placeholder="Chọn ngày sinh"
-          maximumDate={new Date()}
-        />
+        <View className="mb-4">
+          <DatePickerField
+            label="Độ tuổi"
+            value={dateOfBirth}
+            onChange={(date) => {
+              setDateOfBirth(date);
+              if (errors.dateOfBirth) {
+                const newErrors = { ...errors };
+                delete newErrors.dateOfBirth;
+                setErrors(newErrors);
+              }
+            }}
+            placeholder="Chọn ngày sinh"
+            maximumDate={new Date()}
+          />
+          {errors.dateOfBirth && (
+            <Text className="text-red-500 text-sm mt-1">
+              {errors.dateOfBirth}
+            </Text>
+          )}
+        </View>
 
-        <GenderSelector label="Giới tính" value={gender} onChange={setGender} />
+        <View className="mb-4">
+          <GenderSelector
+            label="Giới tính"
+            value={gender}
+            onChange={(value) => {
+              setGender(value);
+              if (errors.gender) {
+                const newErrors = { ...errors };
+                delete newErrors.gender;
+                setErrors(newErrors);
+              }
+            }}
+          />
+          {errors.gender && (
+            <Text className="text-red-500 text-sm mt-1">{errors.gender}</Text>
+          )}
+        </View>
 
         <View className="mb-4">
           <Text className="mb-1 font-InterSemiBold">Vị trí</Text>
@@ -125,26 +203,60 @@ export default function UserInformationStep1() {
             }
             placeholder="Nhập địa chỉ của bạn"
             value={address}
-            onChangeText={setAddress}
+            onChangeText={(text) => {
+              setAddress(text);
+              if (errors.address) {
+                const newErrors = { ...errors };
+                delete newErrors.address;
+                setErrors(newErrors);
+              }
+            }}
             containerClassName="mb-0"
           />
+          {errors.address && (
+            <Text className="text-red-500 text-sm mt-1">{errors.address}</Text>
+          )}
         </View>
 
         <RoleToggle label="Tư cách" value={role} onChange={setRole} />
 
-        <PickerField
-          label="Trình độ"
-          value={level}
-          onChange={setLevel}
-          options={USER_LEVEL_OPTIONS}
-          placeholder="Chọn trình độ của bạn"
-        />
+        <View className="mb-4">
+          <PickerField
+            label="Trình độ"
+            value={level}
+            onChange={(value) => {
+              setLevel(value);
+              if (errors.level) {
+                const newErrors = { ...errors };
+                delete newErrors.level;
+                setErrors(newErrors);
+              }
+            }}
+            options={USER_LEVEL_OPTIONS}
+            placeholder="Chọn trình độ của bạn"
+          />
+          {errors.level && (
+            <Text className="text-red-500 text-sm mt-1">{errors.level}</Text>
+          )}
+        </View>
 
-        <SportsSelector
-          label="Môn thể thao yêu thích"
-          selectedSports={selectedSports}
-          onSportsChange={setSelectedSports}
-        />
+        <View className="mb-4">
+          <SportsSelector
+            label="Môn thể thao yêu thích"
+            selectedSports={selectedSports}
+            onSportsChange={(sports) => {
+              setSelectedSports(sports);
+              if (errors.sports) {
+                const newErrors = { ...errors };
+                delete newErrors.sports;
+                setErrors(newErrors);
+              }
+            }}
+          />
+          {errors.sports && (
+            <Text className="text-red-500 text-sm mt-1">{errors.sports}</Text>
+          )}
+        </View>
 
         <AppButton title="Tiếp tục" filled onPress={handleContinue} />
       </ScrollView>

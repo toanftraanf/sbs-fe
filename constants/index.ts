@@ -37,20 +37,6 @@ export const getUserLevelLabel = (level: UserLevel): string => {
   return option?.label || level;
 };
 
-// Sports data - replace with data from backend sports module
-export const AVAILABLE_SPORTS = [
-  { id: "football", name: "Bóng đá", icon: "football-outline" },
-  { id: "basketball", name: "Bóng rổ", icon: "basketball-outline" },
-  { id: "volleyball", name: "Bóng chuyền", icon: "american-football-outline" },
-  { id: "badminton", name: "Cầu lông", icon: "fitness-outline" },
-  { id: "tennis", name: "Tennis", icon: "tennisball-outline" },
-  { id: "swimming", name: "Bơi lội", icon: "water-outline" },
-  { id: "running", name: "Chạy bộ", icon: "walk-outline" },
-  { id: "cycling", name: "Đạp xe", icon: "bicycle-outline" },
-  { id: "gym", name: "Gym", icon: "barbell-outline" },
-  { id: "yoga", name: "Yoga", icon: "leaf-outline" },
-];
-
 // Fake user data for debugging
 export const FAKE_USER = {
   fullName: "Nguyễn Văn An",

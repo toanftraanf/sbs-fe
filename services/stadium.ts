@@ -36,8 +36,7 @@ export async function getStadiumsByUser(userId: number): Promise<Stadium[]> {
         bank
         accountName
         accountNumber
-        otherPayments
-        pricingImages
+        price
         avatarUrl
         bannerUrl
         galleryUrls
@@ -155,8 +154,7 @@ export async function getStadiumsByAddress(searchAddress: string): Promise<Stadi
         bank
         accountName
         accountNumber
-        otherPayments
-        pricingImages
+        price
         avatarUrl
         bannerUrl
         galleryUrls
@@ -198,8 +196,7 @@ export async function getStadiumsWithSearch(searchAddress?: string): Promise<Sta
         bank
         accountName
         accountNumber
-        otherPayments
-        pricingImages
+        price
         avatarUrl
         bannerUrl
         galleryUrls
@@ -260,8 +257,7 @@ export async function getStadiumStep2(id: number): Promise<StadiumStep2Data> {
         bank
         accountName
         accountNumber
-        otherPayments
-        pricingImages
+        price
       }
     }
   `;
@@ -476,8 +472,6 @@ export async function getStadiumsByLocation(address: string, radiusKm: number = 
         bank
         accountName
         accountNumber
-        otherPayments
-        pricingImages
         avatarUrl
         bannerUrl
         galleryUrls
@@ -533,8 +527,7 @@ export async function getStadiumsByName(name: string): Promise<Stadium[]> {
         bank
         accountName
         accountNumber
-        otherPayments
-        pricingImages
+        price
         avatarUrl
         bannerUrl
         galleryUrls

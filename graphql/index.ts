@@ -159,6 +159,64 @@ export const REMOVE_FAVORITE_SPORT = gql`
 `;
 
 // =============================================================================
+// FILE UPLOAD QUERIES & MUTATIONS
+// =============================================================================
+
+export const UPLOAD_IMAGE = gql`
+  mutation UploadImage($uploadInput: DirectUploadInput!) {
+    uploadImage(uploadInput: $uploadInput)
+  }
+`;
+
+export const CREATE_STADIUM_WITH_STEPS = gql`
+  mutation CreateStadiumWithSteps($createStadiumStepsInput: CreateStadiumStepsInput!) {
+    createStadiumWithSteps(createStadiumStepsInput: $createStadiumStepsInput) {
+      id
+      name
+      email
+      phone
+      googleMap
+      startTime
+      endTime
+      description
+      website
+      otherInfo
+      avatarUrl
+      bannerUrl
+      galleryUrls
+      bank
+      accountName
+      accountNumber
+      createdAt
+    }
+  }
+`;
+
+export const GET_FILES = gql`
+  query GetFiles {
+    files {
+      id
+      url
+      publicId
+      type
+      createdAt
+    }
+  }
+`;
+
+export const GET_FILES_BY_TYPE = gql`
+  query GetFilesByType($type: String!) {
+    filesByType(type: $type) {
+      id
+      url
+      publicId
+      type
+      createdAt
+    }
+  }
+`;
+
+// =============================================================================
 // STADIUM QUERIES & MUTATIONS
 // =============================================================================
 
@@ -180,8 +238,6 @@ export const GET_STADIUMS_BY_USER = gql`
       bank
       accountName
       accountNumber
-      otherPayments
-      pricingImages
       avatarUrl
       bannerUrl
       galleryUrls
@@ -215,8 +271,6 @@ export const GET_STADIUM_STEP2 = gql`
       bank
       accountName
       accountNumber
-      otherPayments
-      pricingImages
     }
   }
 `;
@@ -262,10 +316,14 @@ export const UPDATE_STADIUM_IMAGES = gql`
 // Stadium Status (different from above)
 export const GET_OWNER_STADIUMS = gql`
   query GetStadiumsByUser($ownerId: Int!) {
-    sports(ownerId: $ownerId) {
+    stadiumsByUser(userId: $ownerId) {
       id
       name
-      location
+      googleMap
+      phone
+      email
+      avatarUrl
+      description
     }
   }
 `;
@@ -275,7 +333,6 @@ export const ADD_STADIUM = gql`
     createStadium(createStadiumInput: $input) {
       id
       name
-      location
     }
   }
 `; 
