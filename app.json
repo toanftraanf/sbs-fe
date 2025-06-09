@@ -12,7 +12,8 @@
     "statusBarBackgroundColor": "#FFFFFF",
     "ios": {
       "supportsTablet": true,
-      "statusBarStyle": "dark"
+      "statusBarStyle": "dark",
+      "bundleIdentifier": "com.xddoan12.sbsfe"
     },
     "android": {
       "adaptiveIcon": {
@@ -41,7 +42,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
