@@ -1,32 +1,20 @@
-import { Platform } from "react-native";
-
-// Get the appropriate localhost URL based on platform
-const getLocalhostUrl = () => {
-  if (Platform.OS === "android") {
-    return "http://192.168.1.8:8089"; // IP của máy tính
-  }
-  if (Platform.OS === "ios") {
-    return "http://192.168.1.8:8089"; // IP của máy tính
-  }
-  return "http://192.168.1.8:8089"; // IP của máy tính
-};
 
 const ENV = {
   dev: {
-    GOOGLE_ANDROID_CLIENT_ID: process.env.GOOGLE_ANDROID_CLIENT_ID || "",
-    GOOGLE_IOS_CLIENT_ID: process.env.GOOGLE_IOS_CLIENT_ID || "",
-    GOOGLE_WEB_CLIENT_ID: process.env.GOOGLE_WEB_CLIENT_ID || "",
-    API_BASE_URL: process.env.API_BASE_URL || getLocalhostUrl(),
-    API_VERSION: process.env.API_VERSION || "v1",
-    GOONG_API_KEY: process.env.GOONG_API_KEY || "",
+    GOOGLE_ANDROID_CLIENT_ID: process.env.GOOGLE_ANDROID_CLIENT_ID,
+    GOOGLE_IOS_CLIENT_ID: process.env.GOOGLE_IOS_CLIENT_ID,
+    GOOGLE_WEB_CLIENT_ID: process.env.GOOGLE_WEB_CLIENT_ID,
+    API_BASE_URL: process.env.API_BASE_URL,
+    API_VERSION: process.env.API_VERSION,
+    GOONG_API_KEY: process.env.GOONG_API_KEY,
   },
   prod: {
-    GOOGLE_ANDROID_CLIENT_ID: process.env.GOOGLE_ANDROID_CLIENT_ID || "",
-    GOOGLE_IOS_CLIENT_ID: process.env.GOOGLE_IOS_CLIENT_ID || "",
-    GOOGLE_WEB_CLIENT_ID: process.env.GOOGLE_WEB_CLIENT_ID || "",
-    API_BASE_URL: process.env.API_BASE_URL || "https://api.sportnow.com",
-    API_VERSION: process.env.API_VERSION || "v1",
-    GOONG_API_KEY: process.env.GOONG_API_KEY || "",
+    GOOGLE_ANDROID_CLIENT_ID: process.env.GOOGLE_ANDROID_CLIENT_ID,
+    GOOGLE_IOS_CLIENT_ID: process.env.GOOGLE_IOS_CLIENT_ID,
+    GOOGLE_WEB_CLIENT_ID: process.env.GOOGLE_WEB_CLIENT_ID,
+    API_BASE_URL: process.env.API_BASE_URL,
+    API_VERSION: process.env.API_VERSION,
+    GOONG_API_KEY: process.env.GOONG_API_KEY,
   },
 } as const;
 
