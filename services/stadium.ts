@@ -24,6 +24,9 @@ export async function getStadiumsByUser(userId: number): Promise<Stadium[]> {
         id
         name
         googleMap
+        address
+        latitude
+        longitude
         phone
         email
         website
@@ -33,6 +36,11 @@ export async function getStadiumsByUser(userId: number): Promise<Stadium[]> {
         endTime
         otherInfo
         sports
+        numberOfFields
+        fields {
+          id
+          fieldName
+        }
         bank
         accountName
         accountNumber
@@ -62,6 +70,9 @@ export async function getStadiumById(id: number): Promise<Stadium> {
         id
         name
         googleMap
+        address
+        latitude
+        longitude
         phone
         email
         website
@@ -101,6 +112,9 @@ export async function getAllStadiums(): Promise<Stadium[]> {
         id
         name
         googleMap
+        address
+        latitude
+        longitude
         phone
         email
         website
@@ -142,6 +156,9 @@ export async function getStadiumsByAddress(searchAddress: string): Promise<Stadi
         id
         name
         googleMap
+        address
+        latitude
+        longitude
         phone
         email
         website
@@ -184,6 +201,9 @@ export async function getStadiumsWithSearch(searchAddress?: string): Promise<Sta
         id
         name
         googleMap
+        address
+        latitude
+        longitude
         phone
         email
         website
@@ -222,10 +242,13 @@ export async function getStadiumStep1(id: number): Promise<StadiumStep1Data> {
   console.log('Fetching stadium step 1 for id:', id);
   const query = `
     query GetStadiumStep1($id: Int!) {
-      stadiumsByUser(userId: $id) {
+      stadium(id: $id) {
         id
         name
         googleMap
+        address
+        latitude
+        longitude
         phone
         email
         website
@@ -235,16 +258,62 @@ export async function getStadiumStep1(id: number): Promise<StadiumStep1Data> {
         endTime
         otherInfo
         sports
+        numberOfFields
+        fields {
+          id
+          fieldName
+        }
       }
     }
   `;
   try {
     const data = await graphqlRequest(query, { id });
     console.log('Step 1 response data:', JSON.stringify(data, null, 2));
-    return data.stadiumsByUser[0];
+    // Convert complex fields object to simple string array for frontend compatibility
+    const fieldsArray = data.stadium.fields?.map((field: any) => field.fieldName || `Sân ${field.id}`) || [];
+    return {
+      ...data.stadium,
+      fields: fieldsArray.length > 0 ? fieldsArray : ['']
+    };
   } catch (error) {
     console.error('Error fetching stadium step 1:', error);
-    throw error;
+    // If fields query fails, try without fields and provide default
+    console.log('Retrying without fields...');
+    const fallbackQuery = `
+      query GetStadiumStep1Fallback($id: Int!) {
+        stadium(id: $id) {
+          id
+          name
+          googleMap
+          address
+          latitude
+          longitude
+          phone
+          email
+          website
+          otherContacts
+          description
+          startTime
+          endTime
+          otherInfo
+          sports
+          numberOfFields
+        }
+      }
+    `;
+    try {
+      const fallbackData = await graphqlRequest(fallbackQuery, { id });
+      // Generate field names based on numberOfFields if available
+      const numberOfFields = fallbackData.stadium.numberOfFields || 1;
+      const generatedFields = Array.from({ length: numberOfFields }, (_, i) => `Sân ${i + 1}`);
+      return {
+        ...fallbackData.stadium,
+        fields: generatedFields
+      };
+    } catch (fallbackError) {
+      console.error('Fallback query also failed:', fallbackError);
+      throw error; // Throw original error
+    }
   }
 }
 
@@ -252,7 +321,7 @@ export async function getStadiumStep2(id: number): Promise<StadiumStep2Data> {
   console.log('Fetching stadium step 2 for id:', id);
   const query = `
     query GetStadiumStep2($id: Int!) {
-      stadiumsByUser(userId: $id) {
+      stadium(id: $id) {
         id
         bank
         accountName
@@ -264,7 +333,7 @@ export async function getStadiumStep2(id: number): Promise<StadiumStep2Data> {
   try {
     const data = await graphqlRequest(query, { id });
     console.log('Step 2 response data:', JSON.stringify(data, null, 2));
-    return data.stadiumsByUser[0];
+    return data.stadium;
   } catch (error) {
     console.error('Error fetching stadium step 2:', error);
     throw error;
@@ -275,7 +344,7 @@ export async function getStadiumStep3(id: number): Promise<StadiumStep3Data> {
   console.log('Fetching stadium step 3 for id:', id);
   const query = `
     query GetStadiumStep3($id: Int!) {
-      stadiumsByUser(userId: $id) {
+      stadium(id: $id) {
         id
         avatarUrl
         bannerUrl
@@ -286,7 +355,7 @@ export async function getStadiumStep3(id: number): Promise<StadiumStep3Data> {
   try {
     const data = await graphqlRequest(query, { id });
     console.log('Step 3 response data:', JSON.stringify(data, null, 2));
-    return data.stadiumsByUser[0];
+    return data.stadium;
   } catch (error) {
     console.error('Error fetching stadium step 3:', error);
     throw error;
@@ -295,7 +364,10 @@ export async function getStadiumStep3(id: number): Promise<StadiumStep3Data> {
 
 export async function createStadiumStep1(input: {
   name: string;
-  googleMap: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  googleMap?: string; // Keep for backward compatibility
   phone: string;
   email: string;
   website: string;
@@ -305,6 +377,7 @@ export async function createStadiumStep1(input: {
   endTime: string;
   otherInfo: string;
   sports: string[];
+  fields: string[];
 }) {
   const mutation = `
     mutation CreateStadium($createStadiumInput: CreateStadiumInput!) {
@@ -375,7 +448,10 @@ export const updateStadiumStep3 = async (input: {
 export async function updateStadium(input: {
   id: number;
   name?: string;
-  googleMap?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  googleMap?: string; // Keep for backward compatibility
   phone?: string;
   email?: string;
   website?: string;
@@ -385,6 +461,7 @@ export async function updateStadium(input: {
   endTime?: string;
   otherInfo?: string;
   sports?: string[];
+  fields?: string[];
 }): Promise<Stadium> {
   console.log('Updating stadium with id:', input.id, 'data:', input);
   const mutation = `
@@ -393,6 +470,9 @@ export async function updateStadium(input: {
         id
         name
         googleMap
+        address
+        latitude
+        longitude
         phone
         email
         website
@@ -454,6 +534,8 @@ export async function getStadiumsByLocation(address: string, radiusKm: number = 
         name
         description
         address
+        latitude
+        longitude
         googleMap
         phone
         email
@@ -464,7 +546,6 @@ export async function getStadiumsByLocation(address: string, radiusKm: number = 
         otherInfo
         sports
         price
-        area
         numberOfFields
         rating
         status
@@ -509,6 +590,8 @@ export async function getStadiumsByName(name: string): Promise<Stadium[]> {
         name
         description
         address
+        latitude
+        longitude
         googleMap
         phone
         email
@@ -519,7 +602,6 @@ export async function getStadiumsByName(name: string): Promise<Stadium[]> {
         otherInfo
         sports
         price
-        area
         numberOfFields
         rating
         status

@@ -176,6 +176,9 @@ export const CREATE_STADIUM_WITH_STEPS = gql`
       email
       phone
       googleMap
+      address
+      latitude
+      longitude
       startTime
       endTime
       description
@@ -333,6 +336,192 @@ export const ADD_STADIUM = gql`
     createStadium(createStadiumInput: $input) {
       id
       name
+    }
+  }
+`;
+
+export const GET_STADIUM_BY_ID = gql`
+  query Stadium($id: Int!) {
+    stadium(id: $id) {
+      id
+      name
+      phone
+      email
+      website
+      googleMap
+      description
+      startTime
+      endTime
+      otherInfo
+      avatarUrl
+      bannerUrl
+      galleryUrls
+      sports
+      rating
+      price
+      numberOfFields
+      bank
+      accountName
+      accountNumber
+      otherContacts
+      fields {
+        id
+        fieldName
+      }
+      createdAt
+      user {
+        id
+        email
+        fullName
+      }
+    }
+  }
+`;
+
+export const CREATE_RESERVATION = gql`
+  mutation CreateReservation($createReservationInput: CreateReservationInput!) {
+    createReservation(createReservationInput: $createReservationInput) {
+      id
+      userId
+      stadiumId
+      sport
+      courtType
+      courtNumber
+      date
+      startTime
+      endTime
+      totalPrice
+      status
+      createdAt
+    }
+  }
+`;
+
+export const GET_STADIUM_RESERVATIONS = gql`
+  query GetStadiumReservations($stadiumId: Int!, $date: String!) {
+    stadiumReservations(stadiumId: $stadiumId, date: $date) {
+      id
+      courtNumber
+      date
+      startTime
+      endTime
+      status
+      sport
+      courtType
+    }
+  }
+`;
+
+// Get all reservations for a specific user (customer)
+export const GET_USER_RESERVATIONS = gql`
+  query GetUserReservations($userId: Int!) {
+    userReservations(userId: $userId) {
+      id
+      userId
+      stadiumId
+      sport
+      courtType
+      courtNumber
+      date
+      startTime
+      endTime
+      totalPrice
+      status
+      createdAt
+      updatedAt
+      stadium {
+        id
+        name
+        phone
+        email
+      }
+    }
+  }
+`;
+
+// Get all reservations for stadiums owned by a specific owner
+export const GET_OWNER_STADIUM_RESERVATIONS = gql`
+  query GetOwnerStadiumReservations($ownerId: Int!) {
+    ownerStadiumReservations(ownerId: $ownerId) {
+      id
+      userId
+      stadiumId
+      sport
+      courtType
+      courtNumber
+      date
+      startTime
+      endTime
+      totalPrice
+      status
+      createdAt
+      updatedAt
+      user {
+        id
+        phoneNumber
+        fullName
+        email
+      }
+      stadium {
+        id
+        name
+        phone
+        email
+      }
+    }
+  }
+`;
+
+// Get user reservations within a date range
+export const GET_USER_RESERVATIONS_BY_DATE_RANGE = gql`
+  query GetUserReservationsByDateRange($userId: Int!, $startDate: String!, $endDate: String!) {
+    userReservationsByDateRange(userId: $userId, startDate: $startDate, endDate: $endDate) {
+      id
+      userId
+      stadiumId
+      sport
+      courtType
+      courtNumber
+      date
+      startTime
+      endTime
+      totalPrice
+      status
+      createdAt
+      stadium {
+        id
+        name
+      }
+    }
+  }
+`;
+
+// Get owner stadium reservations within a date range  
+export const GET_OWNER_STADIUM_RESERVATIONS_BY_DATE_RANGE = gql`
+  query GetOwnerStadiumReservationsByDateRange($ownerId: Int!, $startDate: String!, $endDate: String!) {
+    ownerStadiumReservationsByDateRange(ownerId: $ownerId, startDate: $startDate, endDate: $endDate) {
+      id
+      userId
+      stadiumId
+      sport
+      courtType
+      courtNumber
+      date
+      startTime
+      endTime
+      totalPrice
+      status
+      createdAt
+      user {
+        id
+        phoneNumber
+        fullName
+        email
+      }
+      stadium {
+        id
+        name
+      }
     }
   }
 `; 

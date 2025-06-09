@@ -7,6 +7,8 @@ export const images = {
   tennis: require("../assets/images/tennis.png"),
   tabletennis: require("../assets/images/table-tennis.png"),
   pickleball: require("../assets/images/pickleball.png"),
+  defaultBanner: require("../assets/images/default-banner.jpg"),
+  defaultStadiumAvatar: require("../assets/images/default-stadium-avatar.jpg"),
 };
 
 export const icons = {

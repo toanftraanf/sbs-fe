@@ -64,33 +64,50 @@ export interface UserFavoriteSport {
 // STADIUM TYPES
 // =============================================================================
 
+export interface StadiumField {
+  id: number;
+  fieldName: string;
+}
+
 export interface Stadium {
   id: number;
   name: string;
-  googleMap: string;
-  phone: string;
-  email: string;
-  website: string;
-  otherContacts: string[];
-  description: string;
-  startTime: string;
-  endTime: string;
-  otherInfo: string;
-  sports: string[];
-  bank: string;
-  accountName: string;
-  accountNumber: string;
-  otherPayments: string[];
-  pricingImages: string[];
-  avatarUrl: string;
-  bannerUrl: string;
-  galleryUrls: string[];
+  phone?: string;
+  email?: string;
+  website?: string;
+  googleMap?: string; // Keep for backward compatibility
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  description?: string;
+  startTime?: string;
+  endTime?: string;
+  otherInfo?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  galleryUrls?: string[];
+  sports?: string[];
+  rating?: number;
+  price?: number;
+  area?: number;
+  numberOfFields?: number;
+  fields?: StadiumField[];
+  bank?: string;
+  accountName?: string;
+  accountNumber?: string;
+  otherPayments?: string[];
+  otherContacts?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface StadiumStep1Data {
   id: number;
   name: string;
-  googleMap: string;
+  googleMap?: string; // Keep for backward compatibility
+  address: string;
+  latitude: number;
+  longitude: number;
   phone: string;
   email: string;
   website: string;
@@ -100,6 +117,7 @@ export interface StadiumStep1Data {
   endTime: string;
   otherInfo: string;
   sports: string[];
+  fields: string[];
 }
 
 export interface StadiumStep2Data {
@@ -107,6 +125,7 @@ export interface StadiumStep2Data {
   bank: string;
   accountName: string;
   accountNumber: string;
+  price?: number;
   otherPayments: string[];
   pricingImages: string[];
 }
@@ -145,4 +164,50 @@ export enum UserLevel {
   INTERMEDIATE = 'intermediate',
   ADVANCED = 'advanced',
   PRO = 'pro',
+}
+
+// =============================================================================
+// RESERVATION TYPES
+// =============================================================================
+
+export interface Reservation {
+  id: number;
+  userId: number;
+  stadiumId: number;
+  sport: string;
+  courtType: string;
+  courtNumber: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  totalPrice: number;
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: number;
+    phoneNumber: string;
+    fullName?: string;
+    email?: string;
+  };
+  stadium?: {
+    id: number;
+    name: string;
+    phone?: string;
+    email?: string;
+    fields?: StadiumField[];
+  };
+}
+
+export interface CreateReservationInput {
+  userId: number;
+  stadiumId: number;
+  sport: string;
+  courtType: string;
+  courtNumber: number;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  totalPrice: number;
+  status?: string;
 } 

@@ -16,7 +16,6 @@ import {
 import MapView, { Callout, Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import StadiumCard from "../../components/StadiumCard";
 import {
-  getStadiumById,
   getStadiumsByLocation,
   getStadiumsByName,
 } from "../../services/stadium";
@@ -48,7 +47,6 @@ interface StadiumMapData {
   id: number;
   name: string;
   rating: number;
-  distance: string;
   address: string;
   image: string;
   coordinate: {
@@ -158,13 +156,29 @@ export default function StadiumBooking() {
       });
       if (address && address.length > 0) {
         const addr = address[0];
-        // Tạo địa chỉ ngắn gọn cho header và địa chỉ đầy đủ cho API
+
+        // Log to see what we're getting from reverse geocoding
+        console.log("🗺️ Reverse geocode result:", addr);
+
+        // Build complete address including street number, street, ward, district, city
+        const addressParts = [
+          addr.streetNumber,
+          addr.street,
+          addr.name, // This often contains detailed location info
+          addr.district,
+          addr.city || addr.region,
+          addr.country,
+        ].filter((part) => part && part.trim() !== "");
+
+        const fullAddressStr = addressParts.join(" ");
+
+        // For header display, use shorter version
         const shortAddress = `${addr.district || ""} ${
           addr.city || addr.region || ""
         }`.trim();
-        const fullAddressStr = `${addr.street || ""} ${addr.district || ""} ${
-          addr.city || ""
-        } ${addr.region || ""}`.trim();
+
+        console.log("🗺️ Constructed full address:", fullAddressStr);
+        console.log("🗺️ Short address for header:", shortAddress);
 
         setCurrentAddress(
           shortAddress || fullAddressStr || `${latitude}, ${longitude}`
@@ -200,11 +214,50 @@ export default function StadiumBooking() {
     try {
       setLoading(true);
       const addressToSearch = address || fullAddress;
-      if (!addressToSearch) return;
+      if (!addressToSearch) {
+        console.log("No address to search for");
+        return;
+      }
 
-      console.log("Fetching stadiums near:", addressToSearch);
-      const apiStadiums = await getStadiumsByLocation(addressToSearch, radius);
-      console.log("API Stadiums", apiStadiums);
+      console.log("🔍 Fetching stadiums near:", addressToSearch);
+      let apiStadiums = await getStadiumsByLocation(addressToSearch, radius);
+      console.log("📍 API Stadiums received:", apiStadiums);
+
+      // If no stadiums found with full address, try with broader search terms
+      if (!apiStadiums || apiStadiums.length === 0) {
+        console.log(
+          "🔄 No stadiums found with full address, trying broader search..."
+        );
+
+        // Try with just district and city
+        const parts = addressToSearch.split(" ");
+        const broaderSearchTerms = [
+          "Hà Nội", // City only
+          "Đức Giang Hà Nội", // Ward + City
+          parts.slice(-2).join(" "), // Last 2 parts
+        ];
+
+        for (const searchTerm of broaderSearchTerms) {
+          console.log(`🔍 Trying broader search: "${searchTerm}"`);
+          try {
+            apiStadiums = await getStadiumsByLocation(searchTerm, radius * 2);
+            if (apiStadiums && apiStadiums.length > 0) {
+              console.log(
+                `✅ Found ${apiStadiums.length} stadiums with: "${searchTerm}"`
+              );
+              break;
+            }
+          } catch (searchError) {
+            console.log(`❌ Search failed for: "${searchTerm}"`);
+          }
+        }
+      }
+
+      if (!apiStadiums || apiStadiums.length === 0) {
+        console.log("❌ No stadiums found even with broader search");
+        setStadiums([]);
+        return;
+      }
 
       transformAndSetStadiums(apiStadiums);
     } catch (error) {
@@ -231,15 +284,19 @@ export default function StadiumBooking() {
   };
 
   const transformAndSetStadiums = (apiStadiums: any[]) => {
+    console.log("Transforming stadiums data:", apiStadiums);
     // Transform API data to component format
     const transformedStadiums: StadiumMapData[] = apiStadiums.map(
       (stadium, index) => {
-        const stadiumData = stadium as StadiumWithLocation; // Type casting for extended properties
+        const stadiumData = stadium as StadiumWithLocation;
+        console.log(`Transforming stadium ${index}:`, stadiumData);
+        console.log(
+          `Stadium coordinates: lat=${stadiumData.latitude}, lng=${stadiumData.longitude}`
+        );
         return {
           id: stadiumData.id,
           name: stadiumData.name,
           rating: stadiumData.rating ?? 4.0,
-          distance: "Calculating...", // Will be calculated by API
           address:
             stadiumData.address ?? stadiumData.googleMap ?? "Địa chỉ không có",
           image:
@@ -247,21 +304,44 @@ export default function StadiumBooking() {
             (stadiumData.images && stadiumData.images[0]) ??
             "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
           coordinate: {
-            // For now, use approximate coordinates around current location
-            // In real app, you'd get coordinates from geocoding the stadium address
-            latitude:
-              (currentLocation?.latitude || 21.026745) +
-              (Math.random() - 0.5) * 0.01,
-            longitude:
-              (currentLocation?.longitude || 105.801982) +
-              (Math.random() - 0.5) * 0.01,
+            latitude: stadiumData.latitude || 21.026745,
+            longitude: stadiumData.longitude || 105.801982,
           },
         };
       }
     );
 
+    console.log("Transformed stadiums:", transformedStadiums);
     setStadiums(transformedStadiums);
-    console.log(`Found ${transformedStadiums.length} stadiums`);
+
+    // Zoom map to show all stadium markers
+    if (transformedStadiums.length > 0 && mapRef.current) {
+      const coordinates = transformedStadiums.map((s) => s.coordinate);
+
+      // Add current location to coordinates if available
+      if (currentLocation) {
+        coordinates.push(currentLocation);
+      }
+
+      // Calculate region to fit all markers
+      const minLat = Math.min(...coordinates.map((c) => c.latitude));
+      const maxLat = Math.max(...coordinates.map((c) => c.latitude));
+      const minLng = Math.min(...coordinates.map((c) => c.longitude));
+      const maxLng = Math.max(...coordinates.map((c) => c.longitude));
+
+      const latDelta = (maxLat - minLat) * 1.5; // Add some padding
+      const lngDelta = (maxLng - minLng) * 1.5;
+
+      mapRef.current.animateToRegion(
+        {
+          latitude: (minLat + maxLat) / 2,
+          longitude: (minLng + maxLng) / 2,
+          latitudeDelta: Math.max(latDelta, 0.01), // Minimum zoom level
+          longitudeDelta: Math.max(lngDelta, 0.01),
+        },
+        1000
+      );
+    }
   };
 
   const handleSearch = () => {
@@ -283,102 +363,13 @@ export default function StadiumBooking() {
       console.log("Stadium Name:", stadium.name);
 
       try {
-        // Fetch full stadium details from API
-        console.log("🔍 Fetching full stadium details from API...");
-        const stadiumDetail = await getStadiumById(stadiumId);
-
-        if (stadiumDetail) {
-          console.log("✅ Stadium Detail Retrieved:");
-          console.log("📋 BASIC INFO:");
-          console.log("   - ID:", stadiumDetail.id);
-          console.log("   - Name:", stadiumDetail.name);
-          console.log("   - Phone:", stadiumDetail.phone || "N/A");
-          console.log("   - Email:", stadiumDetail.email || "N/A");
-          console.log("   - Website:", stadiumDetail.website || "N/A");
-
-          console.log("📍 LOCATION & ADDRESS:");
-          console.log("   - Google Map:", stadiumDetail.googleMap || "N/A");
-
-          console.log("⏰ OPERATING HOURS:");
-          console.log("   - Start Time:", stadiumDetail.startTime || "N/A");
-          console.log("   - End Time:", stadiumDetail.endTime || "N/A");
-
-          console.log("📄 DESCRIPTION:");
-          console.log("   - Description:", stadiumDetail.description || "N/A");
-          console.log("   - Other Info:", stadiumDetail.otherInfo || "N/A");
-
-          console.log("⚽ SPORTS:");
-          if (stadiumDetail.sports && stadiumDetail.sports.length > 0) {
-            stadiumDetail.sports.forEach((sport, index) => {
-              console.log(`   ${index + 1}. ${sport}`);
-            });
-          } else {
-            console.log("   - No sports listed");
-          }
-
-          console.log("💳 PAYMENT INFO:");
-          console.log("   - Bank:", stadiumDetail.bank || "N/A");
-          console.log("   - Account Name:", stadiumDetail.accountName || "N/A");
-          console.log(
-            "   - Account Number:",
-            stadiumDetail.accountNumber || "N/A"
-          );
-
-          console.log("📞 CONTACT INFO:");
-          if (
-            stadiumDetail.otherContacts &&
-            stadiumDetail.otherContacts.length > 0
-          ) {
-            stadiumDetail.otherContacts.forEach((contact, index) => {
-              console.log(`   ${index + 1}. ${contact}`);
-            });
-          } else {
-            console.log("   - No additional contacts");
-          }
-
-          console.log("💰 OTHER PAYMENTS:");
-          if (
-            stadiumDetail.otherPayments &&
-            stadiumDetail.otherPayments.length > 0
-          ) {
-            stadiumDetail.otherPayments.forEach((payment, index) => {
-              console.log(`   ${index + 1}. ${payment}`);
-            });
-          } else {
-            console.log("   - No additional payment methods");
-          }
-
-          console.log("🖼️ MEDIA:");
-          console.log("   - Avatar URL:", stadiumDetail.avatarUrl || "N/A");
-          console.log("   - Banner URL:", stadiumDetail.bannerUrl || "N/A");
-          console.log(
-            "   - Gallery URLs Count:",
-            stadiumDetail.galleryUrls?.length || 0
-          );
-          console.log(
-            "   - Pricing Images Count:",
-            stadiumDetail.pricingImages?.length || 0
-          );
-
-          console.log("🏟️ === END STADIUM DETAIL ===\n");
-
-          // Navigate to detail page with full data
-          router.push({
-            pathname: "/stadium-booking/stadium-detail",
-            params: { stadium: JSON.stringify(stadiumDetail) },
-          });
-        } else {
-          console.log("❌ No stadium detail found");
-        }
-      } catch (error) {
-        console.error("💥 Error fetching stadium detail:", error);
-        console.log("Using basic stadium data for navigation");
-
-        // Fallback to basic stadium data
+        // Navigate to detail page with stadium ID
         router.push({
           pathname: "/stadium-booking/stadium-detail",
-          params: { stadium: JSON.stringify(stadium) },
+          params: { stadiumId: stadiumId.toString() },
         });
+      } catch (error) {
+        console.error("💥 Error navigating to stadium detail:", error);
       }
     } else {
       console.log("❌ Stadium not found in local list");
@@ -464,192 +455,220 @@ export default function StadiumBooking() {
       </View>
 
       {/* Map - Middle Layer */}
-      <MapView
-        ref={mapRef}
-        provider={PROVIDER_GOOGLE}
-        style={{ flex: 1, zIndex: 1 }}
-        initialRegion={{
-          latitude: 21.026745,
-          longitude: 105.801982,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
-        showsUserLocation={locationPermission}
-        showsMyLocationButton={false}
-        customMapStyle={[
-          {
-            featureType: "all",
-            elementType: "labels.text.fill",
-            stylers: [
-              { saturation: 36 },
-              { color: "#333333" },
-              { lightness: 40 },
-            ],
-          },
-          {
-            featureType: "all",
-            elementType: "labels.text.stroke",
-            stylers: [
-              { visibility: "on" },
-              { color: "#ffffff" },
-              { lightness: 16 },
-            ],
-          },
-        ]}
-      >
-        {/* Current location marker */}
-        {currentLocation && (
-          <Marker
-            coordinate={currentLocation}
-            title="Vị trí của bạn"
-            description="Vị trí hiện tại"
-          >
-            <View
-              style={{
-                width: 20,
-                height: 20,
-                backgroundColor: "#4285F4",
-                borderRadius: 10,
-                borderWidth: 3,
-                borderColor: "white",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3,
-                elevation: 3,
-              }}
-            />
-          </Marker>
-        )}
-
-        {/* Stadium markers */}
-        {stadiums.map((stadium) => (
-          <Marker
-            key={stadium.id}
-            coordinate={stadium.coordinate}
-            onPress={() => handleMarkerPress(stadium.id)}
-          >
-            <View style={{ alignItems: "center" }}>
-              {/* Stadium name above marker */}
+      <View style={{ flex: 1, position: "relative" }}>
+        <MapView
+          ref={mapRef}
+          provider={PROVIDER_GOOGLE}
+          style={{ flex: 1, zIndex: 1 }}
+          initialRegion={{
+            latitude: 21.026745,
+            longitude: 105.801982,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+          showsUserLocation={locationPermission}
+          showsMyLocationButton={false}
+          customMapStyle={[
+            {
+              featureType: "all",
+              elementType: "labels.text.fill",
+              stylers: [
+                { saturation: 36 },
+                { color: "#333333" },
+                { lightness: 40 },
+              ],
+            },
+            {
+              featureType: "all",
+              elementType: "labels.text.stroke",
+              stylers: [
+                { visibility: "on" },
+                { color: "#ffffff" },
+                { lightness: 16 },
+              ],
+            },
+          ]}
+        >
+          {/* Current location marker */}
+          {currentLocation && (
+            <Marker
+              coordinate={currentLocation}
+              title="Vị trí của bạn"
+              description="Vị trí hiện tại"
+            >
               <View
                 style={{
-                  backgroundColor: "white",
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: "#E0E0E0",
-                  marginBottom: 4,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.25,
-                  shadowRadius: 3,
-                  elevation: 3,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "bold",
-                    color: "#7CB518",
-                    textAlign: "center",
-                  }}
-                >
-                  {stadium.name}
-                </Text>
-              </View>
-
-              {/* Marker pin */}
-              <View
-                style={{
-                  width: 30,
-                  height: 30,
-                  backgroundColor: "#7CB518",
-                  borderRadius: 15,
+                  width: 20,
+                  height: 20,
+                  backgroundColor: "#4285F4",
+                  borderRadius: 10,
                   borderWidth: 3,
                   borderColor: "white",
-                  justifyContent: "center",
-                  alignItems: "center",
                   shadowColor: "#000",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.25,
                   shadowRadius: 3,
                   elevation: 3,
                 }}
-              >
-                <Ionicons name="football" size={16} color="white" />
-              </View>
-            </View>
+              />
+            </Marker>
+          )}
 
-            <Callout>
-              <View style={{ minWidth: 150, padding: 8 }}>
-                <Text
-                  style={{ fontSize: 16, fontWeight: "bold", color: "#222" }}
+          {/* Stadium markers */}
+          {stadiums.map((stadium) => (
+            <Marker
+              key={stadium.id}
+              coordinate={stadium.coordinate}
+              onPress={() => handleMarkerPress(stadium.id)}
+            >
+              <View style={{ alignItems: "center" }}>
+                {/* Stadium name above marker */}
+                <View
+                  style={{
+                    backgroundColor: "white",
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: "#E0E0E0",
+                    marginBottom: 4,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3,
+                    elevation: 3,
+                  }}
                 >
-                  {stadium.name}
-                </Text>
-                <Text style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
-                  {stadium.address}
-                </Text>
-                <Text style={{ fontSize: 12, color: "#7CB518", marginTop: 4 }}>
-                  ⭐ {stadium.rating} • {stadium.distance}
-                </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "bold",
+                      color: "#7CB518",
+                      textAlign: "center",
+                    }}
+                  >
+                    {stadium.name}
+                  </Text>
+                </View>
+
+                {/* Marker pin */}
+                <View
+                  style={{
+                    width: 30,
+                    height: 30,
+                    backgroundColor: "#7CB518",
+                    borderRadius: 15,
+                    borderWidth: 3,
+                    borderColor: "white",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3,
+                    elevation: 3,
+                  }}
+                >
+                  <Ionicons name="football" size={16} color="white" />
+                </View>
               </View>
-            </Callout>
-          </Marker>
-        ))}
-      </MapView>
+
+              <Callout>
+                <View style={{ minWidth: 150, padding: 8 }}>
+                  <Text
+                    style={{ fontSize: 16, fontWeight: "bold", color: "#222" }}
+                  >
+                    {stadium.name}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+                    {stadium.address}
+                  </Text>
+                </View>
+              </Callout>
+            </Marker>
+          ))}
+        </MapView>
+      </View>
 
       {/* Stadium Cards - Above Tab Bar */}
       <View
         className="absolute left-0 right-0"
-        style={{ bottom: 100, height: 215, zIndex: 3 }}
+        style={{
+          bottom: 100,
+          height: 180,
+          zIndex: 3,
+          pointerEvents: "box-none",
+        }}
       >
-        <Animated.FlatList
-          data={stadiums}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={{
-            paddingHorizontal: (width - CARD_WIDTH) / 2,
-          }}
-          snapToInterval={SNAP_TO}
-          decelerationRate={"fast"}
-          bounces={false}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: true }
-          )}
-          scrollEventThrottle={16}
-          renderItem={({ item, index }) => {
-            const inputRange = [
-              (index - 1) * SNAP_TO,
-              index * SNAP_TO,
-              (index + 1) * SNAP_TO,
-            ];
-            const scale = scrollX.interpolate({
-              inputRange,
-              outputRange: [0.85, 1, 0.85],
-              extrapolate: "clamp",
-            });
-            return (
-              <StadiumCard
-                name={item.name}
-                rating={item.rating}
-                distance={item.distance}
-                address={item.address}
-                image={item.image}
-                onPressBook={() =>
-                  router.push({
-                    pathname: "/stadium-booking/stadium-detail",
-                    params: { stadium: JSON.stringify(item) },
-                  })
-                }
-                scale={scale}
-              />
-            );
-          }}
-        />
+        {stadiums.length > 0 ? (
+          <Animated.FlatList
+            data={stadiums}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={{
+              paddingHorizontal: (width - CARD_WIDTH) / 2,
+            }}
+            snapToInterval={SNAP_TO}
+            decelerationRate={"fast"}
+            bounces={false}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: true }
+            )}
+            scrollEventThrottle={16}
+            renderItem={({ item, index }) => {
+              console.log("Rendering stadium card:", item);
+              const inputRange = [
+                (index - 1) * SNAP_TO,
+                index * SNAP_TO,
+                (index + 1) * SNAP_TO,
+              ];
+              const scale = scrollX.interpolate({
+                inputRange,
+                outputRange: [0.85, 1, 0.85],
+                extrapolate: "clamp",
+              });
+              return (
+                <StadiumCard
+                  name={item.name}
+                  rating={item.rating}
+                  address={item.address}
+                  image={item.image}
+                  onPressBook={() =>
+                    router.push({
+                      pathname: "/stadium-booking/stadium-detail",
+                      params: { stadiumId: item.id.toString() },
+                    })
+                  }
+                  scale={scale}
+                />
+              );
+            }}
+          />
+        ) : (
+          <View
+            className="absolute left-4 right-4 bottom-4 bg-white rounded-xl p-4 shadow-lg border border-gray-100"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
+          >
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 rounded-full bg-yellow-100 items-center justify-center mr-3">
+                <Ionicons name="reload-outline" size={24} color="#F59E0B" />
+              </View>
+              <View className="flex-1">
+                <Text className="font-InterSemiBold text-gray-800 text-base mb-1">
+                  Đang tìm sân bóng...
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );

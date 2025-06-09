@@ -1,384 +1,236 @@
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
+import { images } from "@/constants";
+import { useApolloClient } from "@apollo/client";
+import { FontAwesome, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  Dimensions,
+  ActivityIndicator,
+  Alert,
   Image,
-  SafeAreaView,
+  Linking,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import AppButton from "../../components/AppButton";
-import StadiumContact from "../../components/StadiumContact";
-import StadiumRatings from "../../components/StadiumRatings";
-import StadiumReviews from "../../components/StadiumReviews";
-import StadiumSports from "../../components/StadiumSports";
+import { GET_STADIUM_BY_ID } from "../../graphql";
+import { Stadium } from "../../types";
 
-const { width } = Dimensions.get("window");
-
-// Map sports từ API sang display format
-const mapSportsToDisplay = (sports: string[] = []) => {
-  const sportMap: { [key: string]: string } = {
-    football: "Bóng đá",
-    futsal: "Futsal", 
-    badminton: "Cầu lông",
-    tennis: "Tennis",
-    volleyball: "Bóng chuyền",
-    basketball: "Bóng rổ",
-    tableTennis: "Bóng bàn"
-  };
-  
-  return sports.map(sport => ({
-    key: sport,
-    label: sportMap[sport] || sport
-  }));
-};
-
-// Format time hiển thị
-const formatSchedule = (startTime?: string, endTime?: string) => {
-  if (!startTime || !endTime) {
-    return "Liên hệ để biết giờ hoạt động";
-  }
-  return `Hàng ngày: ${startTime} - ${endTime}`;
-};
-
-// Mock reviews - có thể thay bằng API sau
-const reviews = [
+const hardcodedReviews = [
   {
     id: 1,
-    name: "Khách hàng",
+    name: "Huỳnh văn B",
+    comment: "Thân thiện, kĩ năng tốt.",
     rating: 5,
-    comment: "Sân đẹp, dịch vụ tốt.",
   },
   {
     id: 2,
-    name: "Người dùng",
-    rating: 4,
-    comment: "Giá cả hợp lý, tiện ích đầy đủ.",
+    name: "Huỳnh văn K",
+    comment: "Thân thiện, kĩ năng tốt.",
+    rating: 5,
+  },
+  {
+    id: 3,
+    name: "Huỳnh văn H",
+    comment: "Thân thiện, kĩ năng tốt.",
+    rating: 5,
   },
 ];
 
 export default function StadiumDetail() {
-  const navigation = useNavigation<any>();
-  const params = useLocalSearchParams();
-  const stadium = JSON.parse(params.stadium as string);
-  
-  // Debug log - Stadium detail
-  console.log('\n🏟️ === STADIUM DETAIL PAGE LOADED ===');
-  console.log('📊 Stadium Data:', JSON.stringify(stadium, null, 2));
-  console.log('📋 Available Fields:');
-  console.log('   - Basic:', {
-    id: stadium.id,
-    name: stadium.name,
-    phone: stadium.phone,
-    email: stadium.email,
-    website: stadium.website
-  });
-  console.log('   - Media:', {
-    avatarUrl: !!stadium.avatarUrl,
-    bannerUrl: !!stadium.bannerUrl,
-    galleryCount: stadium.galleryUrls?.length || 0,
-    pricingImagesCount: stadium.pricingImages?.length || 0
-  });
-  console.log('   - Payment:', {
-    bank: stadium.bank,
-    accountName: stadium.accountName,
-    accountNumber: stadium.accountNumber,
-    otherPaymentsCount: stadium.otherPayments?.length || 0
-  });
-  console.log('   - Additional:', {
-    sportsCount: stadium.sports?.length || 0,
-    description: !!stadium.description,
-    otherInfo: !!stadium.otherInfo,
-    otherContactsCount: stadium.otherContacts?.length || 0
-  });
-  console.log('🏟️ === END STADIUM DETAIL DEBUG ===\n');
-  
-  // Process stadium data
-  const stadiumSports = mapSportsToDisplay(stadium.sports);
-  const scheduleText = formatSchedule(stadium.startTime, stadium.endTime);
-  
-  // Prioritize banner, then avatar, then gallery, then fallback
-  const stadiumImage = stadium.bannerUrl || 
-                      stadium.avatarUrl || 
-                      (stadium.galleryUrls && stadium.galleryUrls[0]) ||
-                      stadium.image || 
-                      (stadium.images && stadium.images[0]) || 
-                      "https://images.unsplash.com/photo-1506744038136-46273834b3fb";
+  const { stadiumId } = useLocalSearchParams();
+  const [stadium, setStadium] = useState<Stadium | null>(null);
+  const [loading, setLoading] = useState(true);
+  const apolloClient = useApolloClient();
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchStadiumDetails();
+  }, [stadiumId]);
+
+  const fetchStadiumDetails = async () => {
+    try {
+      setLoading(true);
+      const { data, errors } = await apolloClient.query({
+        query: GET_STADIUM_BY_ID,
+        variables: { id: parseInt(stadiumId as string) },
+      });
+      if (errors)
+        throw new Error(
+          errors[0]?.message || "Failed to fetch stadium details"
+        );
+      if (!data?.stadium) throw new Error("Stadium not found");
+      setStadium(data.stadium);
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể tải thông tin sân bóng. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#7CB518" />
+      </View>
+    );
+  }
+
+  if (!stadium) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-gray-500">Không tìm thấy thông tin sân bóng</Text>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Header Image with overlay buttons */}
-        <View className="w-full h-44 relative">
-          <Image
-            source={{ uri: stadiumImage }}
-            className="w-full h-full rounded-b-2xl"
-          />
-          <TouchableOpacity
-            className="absolute top-4 left-4 bg-white rounded-full p-1.5 shadow"
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={28} color="#222" />
-          </TouchableOpacity>
-          <TouchableOpacity className="absolute top-4 right-4 bg-white rounded-full p-1.5 shadow">
-            <Ionicons name="share-social-outline" size={24} color="#222" />
-          </TouchableOpacity>
-        </View>
+    <View className="flex-1 bg-gray-100">
+      {/* Banner as header with overlayed buttons */}
+      <View className="w-full h-48 relative">
+        <Image
+          source={
+            stadium.bannerUrl
+              ? { uri: stadium.bannerUrl }
+              : images.defaultBanner
+          }
+          className="w-full h-full"
+          resizeMode="cover"
+        />
+        {/* Back button */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ position: "absolute", top: 16, left: 16, zIndex: 2 }}
+          className="bg-white/80 rounded-full p-2"
+        >
+          <Ionicons name="arrow-back" size={24} color="#7CB518" />
+        </TouchableOpacity>
+        {/* Share button */}
+        <TouchableOpacity
+          onPress={() => {}}
+          style={{ position: "absolute", top: 16, right: 16, zIndex: 2 }}
+          className="bg-white/80 rounded-full p-2"
+        >
+          <Ionicons name="share-social" size={22} color="#7CB518" />
+        </TouchableOpacity>
+      </View>
 
-        {/* Stadium Info */}
-        <View className="px-4 py-4">
-          <Text className="font-bold text-xl text-gray-900 mb-1">
-            {stadium.name}
-          </Text>
-          <View className="flex-row items-center mb-1">
-            <MaterialIcons name="calendar-today" size={18} color="#888" />
-            <Text className="ml-1 text-gray-600 text-sm">
-              {scheduleText}
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {/* Card info */}
+        <View className="bg-white rounded-t-3xl -mt-6 pb-4 px-5 shadow-md">
+          {/* Stadium Name */}
+          <Text className="text-2xl font-bold mt-6 mb-2">{stadium.name}</Text>
+
+          {/* Operating hours */}
+          <View className="flex-row items-center mb-2">
+            <MaterialIcons name="calendar-today" size={18} color="#7CB518" />
+            <Text className="ml-2 text-gray-700">
+              {stadium.startTime && stadium.endTime
+                ? `${stadium.startTime} - ${stadium.endTime}`
+                : "Liên hệ để biết giờ hoạt động"}
             </Text>
           </View>
-          <View className="flex-row items-center mb-1">
-            <Ionicons name="location-outline" size={18} color="#888" />
-            <Text className="ml-1 text-gray-600 text-sm flex-1 flex-wrap">
-              {stadium.address || 
-               (stadium.googleMap && !stadium.googleMap.includes('maps.google.com') ? stadium.googleMap : '') || 
-               "Địa chỉ chưa cập nhật"}
+
+          {/* Address */}
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="location" size={18} color="#7CB518" />
+            <Text className="ml-2 text-gray-700 flex-1">
+              {stadium.googleMap || "Chưa có địa chỉ"}
             </Text>
           </View>
-          {(stadium.googleMap || stadium.address) && (
-            <TouchableOpacity 
-              className="mt-2 self-start bg-green-50 rounded-lg px-4 py-1.5"
-              onPress={() => {
-                const query = encodeURIComponent(stadium.address || stadium.googleMap || stadium.name);
-                const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-                // TODO: Thêm logic mở link hoặc navigate tới map screen
-                console.log('Open map:', url);
-              }}
+
+          {/* Xem trên bản đồ button */}
+          {stadium.googleMap && (
+            <TouchableOpacity
+              className="mt-2 mb-2 self-start px-4 py-2 rounded-lg bg-[#E6F4EA]"
+              onPress={() =>
+                stadium.googleMap && Linking.openURL(stadium.googleMap)
+              }
             >
-              <Text className="text-green-600 font-bold text-sm">
-                📍 Xem trên bản đồ
+              <Text className="text-[#7CB518] font-medium">
+                Xem trên bản đồ
               </Text>
             </TouchableOpacity>
           )}
-        </View>
 
-        {/* Sports */}
-        <View className="h-px bg-gray-200 my-3" />
-        <View className="px-4 pt-2">
-          <Text className="font-bold text-base text-gray-900">
-            Các môn hiện có
-          </Text>
-          <Text className="text-gray-500 text-xs mb-1">
+          <View className="border-b border-gray-200 my-4" />
+
+          {/* Sports */}
+          <Text className="font-bold text-base mb-2">Các môn hiện có</Text>
+          <Text className="text-xs text-gray-500 mb-2">
             (Nhấn để xem bảng giá)
           </Text>
-          <StadiumSports sports={stadiumSports} />
-        </View>
+          <View className="flex-row mb-4">
+            {stadium.sports?.map((sport, idx) => (
+              <TouchableOpacity
+                key={idx}
+                className="flex-row items-center px-4 py-2 mr-2 rounded-full border border-[#C7D7B5] bg-white"
+                onPress={() => {}}
+              >
+                <Ionicons name="tennisball" size={16} color="#7CB518" />
+                <Text className="ml-2 text-[#444] font-medium">{sport}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-        {/* Ratings & Reviews */}
-        <View className="h-px bg-gray-200 my-3" />
-        <View className="px-4 pt-2">
-          <StadiumRatings rating={stadium.rating || 0} />
-          <StadiumReviews reviews={reviews} />
-        </View>
-
-        {/* Stadium Info */}
-        {stadium.description && (
-          <>
-            <View className="h-px bg-gray-200 my-3" />
-            <View className="px-4 pt-2">
-              <Text className="font-bold text-base text-gray-900 mb-2">Mô tả</Text>
-              <Text className="text-gray-600 text-sm leading-5">
-                {stadium.description}
-              </Text>
-            </View>
-          </>
-        )}
-
-        {/* Additional Info */}
-        {stadium.otherInfo && (
-          <>
-            <View className="h-px bg-gray-200 my-3" />
-            <View className="px-4 pt-2">
-              <Text className="font-bold text-base text-gray-900 mb-2">Thông tin thêm</Text>
-              <Text className="text-gray-600 text-sm leading-5">
-                {stadium.otherInfo}
-              </Text>
-            </View>
-          </>
-        )}
-
-        {/* Pricing */}
-        {stadium.price && (
-          <>
-            <View className="h-px bg-gray-200 my-3" />
-            <View className="px-4 pt-2">
-              <Text className="font-bold text-base text-gray-900 mb-2">Giá thuê</Text>
-              <View className="bg-green-50 rounded-lg p-3">
-                <Text className="text-green-700 font-bold text-lg">
-                  {stadium.price.toLocaleString('vi-VN')}đ/giờ
+          {/* Reviews */}
+          <Text className="font-bold text-base mb-2">Đánh giá</Text>
+          <View className="flex-row items-center mb-2">
+            <Text className="text-lg font-bold text-[#444] mr-2">4.8</Text>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <FontAwesome key={i} name="star" size={18} color="#FFD600" />
+            ))}
+          </View>
+          {hardcodedReviews.map((review) => (
+            <View key={review.id} className="flex-row items-center mb-2">
+              <View className="flex-1">
+                <Text className="font-bold text-sm text-gray-900">
+                  {review.name}
                 </Text>
-                {stadium.area && (
-                  <Text className="text-green-600 text-sm mt-1">
-                    Diện tích: {stadium.area}m²
-                  </Text>
-                )}
-                {stadium.numberOfFields && (
-                  <Text className="text-green-600 text-sm">
-                    Số sân: {stadium.numberOfFields}
-                  </Text>
-                )}
+                <Text className="text-gray-500 text-xs mb-1">
+                  {review.comment}
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                <Text className="text-green-600 font-bold text-base mr-1">
+                  {review.rating}
+                </Text>
+                <FontAwesome name="star" size={14} color="#FFD600" />
               </View>
             </View>
-          </>
-        )}
+          ))}
 
-        {/* Payment Info */}
-        {(stadium.bank || stadium.accountName || stadium.accountNumber || (stadium.otherPayments && stadium.otherPayments.length > 0)) && (
-          <>
-            <View className="h-px bg-gray-200 my-3" />
-            <View className="px-4 pt-2">
-              <Text className="font-bold text-base text-gray-900 mb-2">Thông tin thanh toán</Text>
-              
-              {/* Bank info */}
-              {stadium.bank && (
-                <View className="bg-green-50 rounded-lg p-3 mb-3">
-                  <Text className="font-medium text-green-700 mb-1">Chuyển khoản ngân hàng:</Text>
-                  <Text className="text-gray-700 text-sm">
-                    🏦 Ngân hàng: {stadium.bank}
-                  </Text>
-                  {stadium.accountName && (
-                    <Text className="text-gray-700 text-sm">
-                      👤 Chủ tài khoản: {stadium.accountName}
-                    </Text>
-                  )}
-                  {stadium.accountNumber && (
-                    <Text className="text-gray-700 text-sm">
-                      💳 Số tài khoản: {stadium.accountNumber}
-                    </Text>
-                  )}
-                </View>
-              )}
-              
-              {/* Other payment methods */}
-              {stadium.otherPayments && stadium.otherPayments.length > 0 && (
-                <View>
-                  <Text className="font-medium text-gray-700 mb-2">Phương thức thanh toán khác:</Text>
-                  {stadium.otherPayments.map((payment: string, index: number) => (
-                    <View key={index} className="bg-blue-50 rounded-lg p-2 mb-2">
-                      <Text className="text-blue-700 text-sm">💰 {payment}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </>
-        )}
-
-        {/* Pricing Images */}
-        {stadium.pricingImages && stadium.pricingImages.length > 0 && (
-          <>
-            <View className="h-px bg-gray-200 my-3" />
-            <View className="px-4 pt-2">
-              <Text className="font-bold text-base text-gray-900 mb-2">Bảng giá chi tiết</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row">
-                  {stadium.pricingImages.map((imageUrl: string, index: number) => (
-                    <View key={index} className="mr-3">
-                      <Image
-                        source={{ uri: imageUrl }}
-                        className="w-64 h-40 rounded-lg"
-                        resizeMode="cover"
-                      />
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          </>
-        )}
-
-        {/* Gallery */}
-        {stadium.galleryUrls && stadium.galleryUrls.length > 0 && (
-          <>
-            <View className="h-px bg-gray-200 my-3" />
-            <View className="px-4 pt-2">
-              <Text className="font-bold text-base text-gray-900 mb-2">Hình ảnh sân bóng</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row">
-                  {stadium.galleryUrls.map((imageUrl: string, index: number) => (
-                    <View key={index} className="mr-3">
-                      <Image
-                        source={{ uri: imageUrl }}
-                        className="w-48 h-32 rounded-lg"
-                        resizeMode="cover"
-                      />
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          </>
-        )}
-
-        {/* Banner */}
-        {stadium.bannerUrl && (
-          <>
-            <View className="h-px bg-gray-200 my-3" />
-            <View className="px-4 pt-2">
-              <Text className="font-bold text-base text-gray-900 mb-2">Banner</Text>
-              <Image
-                source={{ uri: stadium.bannerUrl }}
-                className="w-full h-32 rounded-lg"
-                resizeMode="cover"
-              />
-            </View>
-          </>
-        )}
-
-        {/* Contact */}
-        <View className="h-px bg-gray-200 my-3" />
-        <View className="px-4 pt-2">
-          <Text className="font-bold text-base text-gray-900">Liên hệ</Text>
-          <StadiumContact 
-            phone={stadium.phone || "Chưa cập nhật"} 
-            email={stadium.email || "Chưa cập nhật"} 
-          />
-          
-          {/* Other contacts */}
-          {stadium.otherContacts && stadium.otherContacts.length > 0 && (
-            <View className="mt-3">
-              <Text className="font-medium text-gray-700 mb-2">Liên hệ khác:</Text>
-              {stadium.otherContacts.map((contact: string, index: number) => (
-                <Text key={index} className="text-gray-600 text-sm mb-1">
-                  • {contact}
-                </Text>
-              ))}
-            </View>
-          )}
-          
-          {/* Website */}
-          {stadium.website && (
-            <TouchableOpacity className="mt-3 bg-blue-50 rounded-lg p-3">
-              <Text className="text-blue-600 font-medium">
-                🌐 {stadium.website}
-              </Text>
-            </TouchableOpacity>
-          )}
+          {/* Contact info */}
+          <Text className="font-bold text-base mt-4 mb-2">Liên hệ</Text>
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="call" size={18} color="#7CB518" />
+            <Text className="ml-2 text-gray-700">
+              SDT: {stadium.phone || "-"}
+            </Text>
+          </View>
+          <View className="flex-row items-center mb-2">
+            <MaterialIcons name="email" size={18} color="#7CB518" />
+            <Text className="ml-2 text-gray-700">
+              Mail: {stadium.email || "-"}
+            </Text>
+          </View>
         </View>
       </ScrollView>
-      {/* Fixed bottom button */}
-      <View className="absolute left-0 right-0 bottom-0 bg-white p-4 rounded-t-2xl shadow-lg">
-        <AppButton
-          title="Đặt lịch"
+      {/* Đặt lịch button at the bottom */}
+      <View className="p-4 bg-white border-t border-gray-200">
+        <TouchableOpacity
+          className="bg-[#7CB518] rounded-xl py-3 items-center"
           onPress={() => {
-            router.push("/stadium-booking/booking-detail");
+            router.push({
+              pathname: "/stadium-booking/booking-detail",
+              params: { stadiumId: stadium.id },
+            });
           }}
-        />
+        >
+          <Text className="text-white font-bold text-lg">Đặt lịch</Text>
+        </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

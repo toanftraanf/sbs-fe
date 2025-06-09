@@ -76,12 +76,9 @@ export default function StadiumInformationStep2() {
       }
       setAccountName(data.accountName);
       setAccountNumber(data.accountNumber);
-      // Handle price data if available (cast to any for now since API types may not be updated)
-      const dataWithPrice = data as any;
-      if (dataWithPrice.pricePerHalfHour) {
-        setPricePerHalfHour(
-          formatVND(dataWithPrice.pricePerHalfHour.toString())
-        );
+      // Handle price data if available
+      if (data.price) {
+        setPricePerHalfHour(formatVND(data.price.toString()));
       }
     } catch (err) {
       console.error("Error fetching stadium data:", err);

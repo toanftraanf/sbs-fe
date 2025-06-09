@@ -26,7 +26,15 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="stadium-booking/booking-success"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="stadium-list/stadium-list"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="profile/profile"
               options={{ headerShown: false }}
             />
           </Stack>

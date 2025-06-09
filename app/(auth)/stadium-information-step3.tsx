@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useApolloClient } from "@apollo/client";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,7 @@ import ImagePickerModal from "../../components/ImagePickerModal";
 import SportNowHeader from "../../components/SportNowHeader";
 import { CREATE_STADIUM_WITH_STEPS } from "../../graphql";
 import { UploadProgress as UploadProgressType } from "../../services/fileUpload";
+import * as stadiumApi from "../../services/stadium";
 
 const TABS = [
   { key: "avatar", label: "Ảnh đại diện", icon: "person-circle" },
@@ -59,6 +60,57 @@ export default function StadiumInformationStep3() {
     stadiumId,
     userId: user?.id,
   });
+
+  // Fetch existing stadium images when editing
+  useEffect(() => {
+    if (stadiumId) {
+      fetchStadiumImages();
+    }
+  }, [stadiumId]);
+
+  const fetchStadiumImages = async () => {
+    try {
+      setLoading(true);
+      const data = await stadiumApi.getStadiumStep3(
+        parseInt(stadiumId as string)
+      );
+
+      console.log("Fetched stadium images:", data);
+
+      // Set avatar image
+      if (data.avatarUrl) {
+        setAvatarImage({
+          url: data.avatarUrl,
+          uploading: false,
+          progress: null,
+        });
+      }
+
+      // Set banner image
+      if (data.bannerUrl) {
+        setBannerImage({
+          url: data.bannerUrl,
+          uploading: false,
+          progress: null,
+        });
+      }
+
+      // Set gallery images
+      if (data.galleryUrls && data.galleryUrls.length > 0) {
+        const galleryImageStates = data.galleryUrls.map((url) => ({
+          url,
+          uploading: false,
+          progress: null,
+        }));
+        setGalleryImages(galleryImageStates);
+      }
+    } catch (err) {
+      console.error("Error fetching stadium images:", err);
+      // Don't show alert, just log - user can still upload new images
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validateImages = () => {
     const newErrors: { [key: string]: string } = {};
@@ -168,9 +220,6 @@ export default function StadiumInformationStep3() {
       if (!step1DataClean.email || step1DataClean.email.trim() === "") {
         throw new Error("Email không được để trống");
       }
-      if (!step1DataClean.googleMap || step1DataClean.googleMap.trim() === "") {
-        throw new Error("Link Google Map không được để trống");
-      }
       if (!step1DataClean.startTime || !step1DataClean.endTime) {
         throw new Error("Giờ mở cửa và đóng cửa không được để trống");
       }
@@ -231,19 +280,15 @@ export default function StadiumInformationStep3() {
       const createdStadium = data.createStadiumWithSteps;
       console.log("✅ Stadium created successfully:", createdStadium);
 
-      Alert.alert(
-        "🎉 Thành công!",
-        `Sân tập "${createdStadium.name}" đã được tạo thành công!`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // Navigate back to stadium list
-              router.replace("/stadium-list/stadium-list");
-            },
+      Alert.alert("🎉 Thành công!", `Lưu thông tin thành công!`, [
+        {
+          text: "OK",
+          onPress: () => {
+            // Navigate back to stadium list
+            router.replace("/stadium-list/stadium-list");
           },
-        ]
-      );
+        },
+      ]);
     } catch (error) {
       console.error("❌ Stadium creation failed:", error);
 

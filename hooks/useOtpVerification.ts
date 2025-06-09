@@ -113,7 +113,7 @@ export const useOtpVerification = ({ phoneNumber }: UseOtpVerificationProps) => 
           } else {
             // User has complete profile, navigate to appropriate tab
             if (result.role === "OWNER") {
-              router.replace("/(tabs)/stadium-status");
+              router.replace("/(tabs)");
             } else {
               router.replace("/(tabs)");
             }

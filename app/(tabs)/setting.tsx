@@ -260,10 +260,7 @@ export default function Setting() {
             name={getUserDisplayName()}
             subtitle={getUserSubtitle()}
             onPress={() => {
-              Alert.alert(
-                "Thông báo",
-                "Tính năng chỉnh sửa profile sẽ được cập nhật sớm."
-              );
+              router.push("/profile/profile");
             }}
           />
 
@@ -324,10 +321,7 @@ export default function Setting() {
           name={getUserDisplayName()}
           subtitle={getUserSubtitle()}
           onPress={() => {
-            Alert.alert(
-              "Thông báo",
-              "Tính năng chỉnh sửa profile sẽ được cập nhật sớm."
-            );
+            router.push("/profile/profile");
           }}
         />
 
