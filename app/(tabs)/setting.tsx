@@ -113,11 +113,7 @@ const Setting = () => {
           name={getUserDisplayName()}
           subtitle={getUserSubtitle()}
           onPress={() => {
-            // TODO: Navigate to profile edit screen
-            Alert.alert(
-              "Thông báo",
-              "Tính năng chỉnh sửa profile sẽ được cập nhật sớm."
-            );
+            router.push("/(auth)/update-user-information");
           }}
         />
 

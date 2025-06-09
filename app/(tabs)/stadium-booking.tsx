@@ -17,7 +17,8 @@ import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import StadiumCard from "../../components/StadiumCard";
-import { getStadiumsByLocation, getStadiumsByName, getStadiumById, Stadium } from "../../services/stadium";
+import { getStadiumsByLocation, getStadiumsByName, getStadiumById } from "../../services/stadium";
+import { Stadium } from "@/types";
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = 220;
 const CARD_SPACING = 16;
@@ -37,6 +38,10 @@ interface StadiumWithLocation extends Stadium {
     email?: string;
   };
   createdAt?: string;
+  coordinate?: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
 // Stadium data for map display
@@ -212,7 +217,7 @@ export default function StadiumBooking() {
     const transformedStadiums: StadiumMapData[] = apiStadiums.map((stadium, index) => {
       const stadiumData = stadium as StadiumWithLocation; // Type casting for extended properties
       return {
-        id: stadiumData.id,
+        id: stadiumData.id ?? 0,
         name: stadiumData.name,
         rating: stadiumData.rating ?? 4.0,
         distance: "Calculating...", // Will be calculated by API
