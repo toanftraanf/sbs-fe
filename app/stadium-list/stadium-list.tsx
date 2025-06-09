@@ -16,7 +16,7 @@ import {
 import AppButton from "../../components/AppButton";
 import SportNowHeader from "../../components/SportNowHeader";
 
-export default function StadiumStatus() {
+export default function StadiumList() {
   const [stadiums, setStadiums] = useState<Stadium[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -106,7 +106,7 @@ export default function StadiumStatus() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <SportNowHeader title="Quản lý sân" />
+      <SportNowHeader title="Danh sách sân tập" />
       <View className="flex-1 px-6 pt-4">
         <View className="flex-row items-center justify-between mb-6">
           <Text className="text-2xl font-InterBold text-gray-800">

@@ -25,6 +25,10 @@ export default function RootLayout() {
               name="stadium-booking/booking-detail"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="stadium-list/stadium-list"
+              options={{ headerShown: false }}
+            />
           </Stack>
         </AuthGuard>
       </ApolloProvider>
