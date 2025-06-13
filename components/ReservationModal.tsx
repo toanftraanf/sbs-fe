@@ -20,6 +20,7 @@ interface ReservationModalProps {
     reservationId: number,
     newStatus: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED"
   ) => void;
+  userRole?: "OWNER" | "CUSTOMER"; // Add user role prop
 }
 
 const ReservationModal: React.FC<ReservationModalProps> = ({
@@ -27,8 +28,25 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   reservation,
   onClose,
   onStatusChange,
+  userRole = "CUSTOMER", // Default to customer if not specified
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Debug logging for modal props
+  console.log("🔍 ReservationModal props:", {
+    visible,
+    reservationId: reservation?.id,
+    reservationExists: !!reservation,
+    hasOnClose: !!onClose,
+    hasOnStatusChange: !!onStatusChange,
+    userRole: userRole, // Add userRole to debug logging
+  });
+
+  console.log("👤 USER ROLE DEBUG:", {
+    userRole,
+    isOwner: userRole === "OWNER",
+    isCustomer: userRole === "CUSTOMER",
+  });
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -162,7 +180,12 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
     );
   };
 
-  if (!reservation) return null;
+  if (!reservation) {
+    console.log("❌ ReservationModal: reservation is null, returning null");
+    return null;
+  }
+
+  console.log("✅ ReservationModal: About to render modal");
 
   // Debug logging
   console.log("🐛 Modal reservation data:", {
@@ -173,6 +196,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
     courtNumber: reservation.courtNumber,
     stadium: reservation.stadium,
   });
+
+  console.log("🎭 ReservationModal: Rendering Modal with visible =", visible);
 
   return (
     <Modal
@@ -356,7 +381,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
         {reservation.status !== "COMPLETED" && (
           <View className="border-t border-gray-200 p-4 bg-white">
             <Text className="text-lg font-bold text-gray-900 mb-4">
-              Thay đổi trạng thái
+              {userRole === "OWNER" ? "Thay đổi trạng thái" : "Hành động"}
             </Text>
 
             {isUpdating && (
@@ -366,97 +391,168 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
               </View>
             )}
 
+            {/* DEBUG: Log before rendering buttons */}
+            {(() => {
+              console.log("🔘 BUTTONS RENDER DEBUG:", {
+                userRole,
+                reservationStatus: reservation.status,
+                isOwner: userRole === "OWNER",
+                isCustomer: userRole === "CUSTOMER",
+                willShowOwnerButtons: userRole === "OWNER",
+                willShowCustomerButtons: userRole === "CUSTOMER",
+              });
+              return null;
+            })()}
+
             <View className="space-y-3">
-              {reservation.status !== "CONFIRMED" && (
-                <TouchableOpacity
-                  onPress={() => handleStatusChange("CONFIRMED")}
-                  disabled={isUpdating}
-                  className={`rounded-lg py-3 px-4 ${
-                    isUpdating ? "bg-gray-400" : "bg-green-500"
-                  }`}
-                >
-                  <View className="flex-row items-center justify-center">
-                    {isUpdating && (
-                      <ActivityIndicator
-                        size="small"
-                        color="white"
-                        className="mr-2"
-                      />
-                    )}
-                    <Text className="text-white text-center font-semibold">
-                      Xác nhận lịch đặt
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+              {/* OWNER: Can perform all status changes */}
+              {userRole === "OWNER" && (
+                <>
+                  {(() => {
+                    console.log("🔵 RENDERING OWNER BUTTONS");
+                    return null;
+                  })()}
+                  {reservation.status !== "CONFIRMED" && (
+                    <TouchableOpacity
+                      onPress={() => handleStatusChange("CONFIRMED")}
+                      disabled={isUpdating}
+                      className={`rounded-lg py-3 px-4 ${
+                        isUpdating ? "bg-gray-400" : "bg-green-500"
+                      }`}
+                    >
+                      <View className="flex-row items-center justify-center">
+                        {isUpdating && (
+                          <ActivityIndicator
+                            size="small"
+                            color="white"
+                            className="mr-2"
+                          />
+                        )}
+                        <Text className="text-white text-center font-semibold">
+                          Xác nhận lịch đặt
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+
+                  {reservation.status !== "CANCELLED" && (
+                    <TouchableOpacity
+                      onPress={() => handleStatusChange("CANCELLED")}
+                      disabled={isUpdating}
+                      className={`rounded-lg py-3 px-4 ${
+                        isUpdating ? "bg-gray-400" : "bg-red-500"
+                      }`}
+                    >
+                      <View className="flex-row items-center justify-center">
+                        {isUpdating && (
+                          <ActivityIndicator
+                            size="small"
+                            color="white"
+                            className="mr-2"
+                          />
+                        )}
+                        <Text className="text-white text-center font-semibold">
+                          Hủy lịch đặt
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+
+                  {reservation.status === "CONFIRMED" && (
+                    <TouchableOpacity
+                      onPress={() => handleStatusChange("COMPLETED")}
+                      disabled={isUpdating}
+                      className={`rounded-lg py-3 px-4 ${
+                        isUpdating ? "bg-gray-400" : "bg-blue-500"
+                      }`}
+                    >
+                      <View className="flex-row items-center justify-center">
+                        {isUpdating && (
+                          <ActivityIndicator
+                            size="small"
+                            color="white"
+                            className="mr-2"
+                          />
+                        )}
+                        <Text className="text-white text-center font-semibold">
+                          Đánh dấu hoàn thành
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+
+                  {reservation.status !== "PENDING" && (
+                    <TouchableOpacity
+                      onPress={() => handleStatusChange("PENDING")}
+                      disabled={isUpdating}
+                      className={`rounded-lg py-3 px-4 ${
+                        isUpdating ? "bg-gray-400" : "bg-orange-500"
+                      }`}
+                    >
+                      <View className="flex-row items-center justify-center">
+                        {isUpdating && (
+                          <ActivityIndicator
+                            size="small"
+                            color="white"
+                            className="mr-2"
+                          />
+                        )}
+                        <Text className="text-white text-center font-semibold">
+                          Đặt về chờ xác nhận
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
 
-              {reservation.status !== "CANCELLED" && (
-                <TouchableOpacity
-                  onPress={() => handleStatusChange("CANCELLED")}
-                  disabled={isUpdating}
-                  className={`rounded-lg py-3 px-4 ${
-                    isUpdating ? "bg-gray-400" : "bg-red-500"
-                  }`}
-                >
-                  <View className="flex-row items-center justify-center">
-                    {isUpdating && (
-                      <ActivityIndicator
-                        size="small"
-                        color="white"
-                        className="mr-2"
-                      />
-                    )}
-                    <Text className="text-white text-center font-semibold">
-                      Hủy lịch đặt
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
+              {/* CUSTOMER: Can only cancel reservations */}
+              {userRole === "CUSTOMER" && (
+                <>
+                  {(() => {
+                    console.log("🔴 RENDERING CUSTOMER BUTTONS");
+                    return null;
+                  })()}
+                  {reservation.status === "PENDING" && (
+                    <TouchableOpacity
+                      onPress={() => handleStatusChange("CANCELLED")}
+                      disabled={isUpdating}
+                      className={`rounded-lg py-3 px-4 ${
+                        isUpdating ? "bg-gray-400" : "bg-red-500"
+                      }`}
+                    >
+                      <View className="flex-row items-center justify-center">
+                        {isUpdating && (
+                          <ActivityIndicator
+                            size="small"
+                            color="white"
+                            className="mr-2"
+                          />
+                        )}
+                        <Text className="text-white text-center font-semibold">
+                          Hủy lịch đặt
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
 
-              {reservation.status === "CONFIRMED" && (
-                <TouchableOpacity
-                  onPress={() => handleStatusChange("COMPLETED")}
-                  disabled={isUpdating}
-                  className={`rounded-lg py-3 px-4 ${
-                    isUpdating ? "bg-gray-400" : "bg-blue-500"
-                  }`}
-                >
-                  <View className="flex-row items-center justify-center">
-                    {isUpdating && (
-                      <ActivityIndicator
-                        size="small"
-                        color="white"
-                        className="mr-2"
-                      />
-                    )}
-                    <Text className="text-white text-center font-semibold">
-                      Đánh dấu hoàn thành
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
+                  {reservation.status === "CONFIRMED" && (
+                    <View className="bg-gray-50 rounded-lg p-4">
+                      <Text className="text-gray-600 text-center">
+                        Lịch đặt đã được xác nhận. Vui lòng liên hệ trực tiếp
+                        với sân để thay đổi.
+                      </Text>
+                    </View>
+                  )}
 
-              {reservation.status !== "PENDING" && (
-                <TouchableOpacity
-                  onPress={() => handleStatusChange("PENDING")}
-                  disabled={isUpdating}
-                  className={`rounded-lg py-3 px-4 ${
-                    isUpdating ? "bg-gray-400" : "bg-orange-500"
-                  }`}
-                >
-                  <View className="flex-row items-center justify-center">
-                    {isUpdating && (
-                      <ActivityIndicator
-                        size="small"
-                        color="white"
-                        className="mr-2"
-                      />
-                    )}
-                    <Text className="text-white text-center font-semibold">
-                      Đặt về chờ xác nhận
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                  {reservation.status === "CANCELLED" && (
+                    <View className="bg-red-50 rounded-lg p-4">
+                      <Text className="text-red-600 text-center font-medium">
+                        Lịch đặt đã bị hủy
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
             </View>
           </View>

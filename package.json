@@ -24,6 +24,7 @@
     "@rnmapbox/maps": "^10.1.39",
     "ajv": "8.17.1",
     "clsx": "2.1.1",
+    "dotenv": "^16.5.0",
     "expo": "53.0.10",
     "expo-auth-session": "6.2.0",
     "expo-blur": "14.1.5",

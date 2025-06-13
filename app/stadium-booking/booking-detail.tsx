@@ -181,34 +181,80 @@ export default function BookingDetail() {
 
         // Mark booked slots as locked
         if (data?.stadiumReservations) {
-          data.stadiumReservations.forEach((reservation: any) => {
-            const {
-              courtNumber,
-              startTime,
-              endTime,
-              status: reservationStatus,
-            } = reservation;
+          console.log("🔒 SLOT LOCKING DEBUG:");
+          console.log(
+            "  📋 Total reservations to process:",
+            data.stadiumReservations.length
+          );
 
-            // Skip cancelled reservations
-            if (reservationStatus === "CANCELLED") return;
+          data.stadiumReservations.forEach(
+            (reservation: any, reservationIndex: number) => {
+              const {
+                courtNumber,
+                startTime,
+                endTime,
+                status: reservationStatus,
+              } = reservation;
 
-            // Find the time slot that matches this reservation
-            const slotIndex = slots.findIndex((slot) => {
-              const [slotStartTime] = slot.split(" - ");
-              return slotStartTime === startTime;
-            });
+              console.log(`  🎯 Reservation ${reservationIndex + 1}:`, {
+                courtNumber,
+                startTime,
+                endTime,
+                status: reservationStatus,
+              });
 
-            // Find the court index (courtNumber - 1 because array is 0-indexed)
-            const courtIndex = courtNumber - 1;
+              // Skip cancelled reservations
+              if (reservationStatus === "CANCELLED") {
+                console.log(`    ⏭️ Skipping cancelled reservation`);
+                return;
+              }
 
-            if (
-              slotIndex !== -1 &&
-              courtIndex >= 0 &&
-              courtIndex < fieldList.length
-            ) {
-              status[slotIndex][courtIndex] = "lock";
+              // Find the court index (courtNumber - 1 because array is 0-indexed)
+              const courtIndex = courtNumber - 1;
+
+              if (courtIndex < 0 || courtIndex >= fieldList.length) {
+                console.log(
+                  `    ❌ Invalid court index: ${courtIndex} (fieldList length: ${fieldList.length})`
+                );
+                return;
+              }
+
+              // Mark ALL slots from startTime to endTime as locked
+              let foundStart = false;
+              let lockedSlots: string[] = [];
+
+              for (let slotIndex = 0; slotIndex < slots.length; slotIndex++) {
+                const slot = slots[slotIndex];
+                const [slotStartTime, slotEndTime] = slot.split(" - ");
+
+                // Check if this slot is part of the reservation
+                if (slotStartTime === startTime) {
+                  foundStart = true;
+                  console.log(
+                    `    🎯 Found start slot at index ${slotIndex}: ${slot}`
+                  );
+                }
+
+                if (foundStart) {
+                  status[slotIndex][courtIndex] = "lock";
+                  lockedSlots.push(slot);
+
+                  // Stop when we reach the end time
+                  if (slotEndTime === endTime) {
+                    console.log(
+                      `    🏁 Found end slot at index ${slotIndex}: ${slot}`
+                    );
+                    break;
+                  }
+                }
+              }
+
+              console.log(
+                `    🔒 Locked ${lockedSlots.length} slots for court ${courtNumber}:`,
+                lockedSlots
+              );
             }
-          });
+          );
         }
 
         setSlotStatus(status);
@@ -270,6 +316,82 @@ export default function BookingDetail() {
     return selectedSlots;
   };
 
+  // New function to group consecutive slots into reservations
+  const getGroupedReservations = () => {
+    const selectedSlots = getSelectedSlots();
+
+    if (selectedSlots.length === 0) return [];
+
+    // Group by court number first
+    const slotsByCourt: { [courtNumber: number]: typeof selectedSlots } = {};
+    selectedSlots.forEach((slot) => {
+      if (!slotsByCourt[slot.courtNumber]) {
+        slotsByCourt[slot.courtNumber] = [];
+      }
+      slotsByCourt[slot.courtNumber].push(slot);
+    });
+
+    const groupedReservations: {
+      courtNumber: number;
+      startTime: string;
+      endTime: string;
+      slotCount: number;
+      timeSlots: string[];
+    }[] = [];
+
+    // For each court, group consecutive time slots
+    Object.entries(slotsByCourt).forEach(([courtNumber, slots]) => {
+      // Sort slots by start time
+      const sortedSlots = slots.sort((a, b) =>
+        a.startTime.localeCompare(b.startTime)
+      );
+
+      let currentGroup: typeof slots = [];
+
+      sortedSlots.forEach((slot, index) => {
+        if (currentGroup.length === 0) {
+          // Start new group
+          currentGroup = [slot];
+        } else {
+          // Check if this slot is consecutive to the last slot in current group
+          const lastSlot = currentGroup[currentGroup.length - 1];
+          const lastEndTime = lastSlot.endTime;
+          const currentStartTime = slot.startTime;
+
+          if (lastEndTime === currentStartTime) {
+            // Consecutive slot, add to current group
+            currentGroup.push(slot);
+          } else {
+            // Not consecutive, finalize current group and start new one
+            groupedReservations.push({
+              courtNumber: parseInt(courtNumber),
+              startTime: currentGroup[0].startTime,
+              endTime: currentGroup[currentGroup.length - 1].endTime,
+              slotCount: currentGroup.length,
+              timeSlots: currentGroup.map((s) => s.timeSlot),
+            });
+
+            // Start new group with current slot
+            currentGroup = [slot];
+          }
+        }
+
+        // If this is the last slot, finalize the current group
+        if (index === sortedSlots.length - 1) {
+          groupedReservations.push({
+            courtNumber: parseInt(courtNumber),
+            startTime: currentGroup[0].startTime,
+            endTime: currentGroup[currentGroup.length - 1].endTime,
+            slotCount: currentGroup.length,
+            timeSlots: currentGroup.map((s) => s.timeSlot),
+          });
+        }
+      });
+    });
+
+    return groupedReservations;
+  };
+
   const calculateTotalPrice = () => {
     const selectedSlots = getSelectedSlots();
     const pricePerSlot = stadium?.price || 100000; // Default price
@@ -278,6 +400,7 @@ export default function BookingDetail() {
 
   const handleCompleteBooking = async () => {
     const selectedSlots = getSelectedSlots();
+    const groupedReservations = getGroupedReservations();
 
     if (selectedSlots.length === 0) {
       Alert.alert(
@@ -296,38 +419,46 @@ export default function BookingDetail() {
       return;
     }
 
-    // Debug timezone fix
-    console.log("🗓️ TIMEZONE DEBUG - Reservation Creation:");
-    console.log("  📅 Local computer date:", new Date().toDateString());
-    console.log("  📅 Selected date key (local):", selectedDate.key);
-    console.log(
-      "  📅 UTC date would be:",
-      new Date().toISOString().split("T")[0]
-    );
-    console.log("  ✅ Using LOCAL date for reservation:", selectedDate.key);
+    // Debug grouped reservations
+    console.log("🎯 GROUPED RESERVATIONS DEBUG:");
+    console.log("  📊 Selected slots count:", selectedSlots.length);
+    console.log("  📊 Grouped reservations count:", groupedReservations.length);
+    groupedReservations.forEach((reservation, index) => {
+      console.log(`  📋 Reservation ${index + 1}:`, {
+        court: reservation.courtNumber,
+        time: `${reservation.startTime} - ${reservation.endTime}`,
+        slotCount: reservation.slotCount,
+        timeSlots: reservation.timeSlots,
+      });
+    });
 
     setBookingLoading(true);
 
     try {
-      // Create reservations for each selected slot
-      const reservationPromises = selectedSlots.map(async (slot) => {
-        return createReservation({
-          variables: {
-            createReservationInput: {
-              userId,
-              stadiumId: parseInt(stadiumId as string),
-              sport: selectedSport,
-              courtType: selectedCourtType,
-              courtNumber: slot.courtNumber,
-              date: selectedDate.key, // Now using timezone-aware local date
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-              totalPrice: stadium?.price || 100000,
-              status: "PENDING",
+      // Create reservations for each grouped reservation (consecutive slots = 1 reservation)
+      const reservationPromises = groupedReservations.map(
+        async (reservation) => {
+          const pricePerSlot = stadium?.price || 100000;
+          const totalPrice = reservation.slotCount * pricePerSlot;
+
+          return createReservation({
+            variables: {
+              createReservationInput: {
+                userId,
+                stadiumId: parseInt(stadiumId as string),
+                sport: selectedSport,
+                courtType: selectedCourtType,
+                courtNumber: reservation.courtNumber,
+                date: selectedDate.key,
+                startTime: reservation.startTime,
+                endTime: reservation.endTime,
+                totalPrice: totalPrice,
+                status: "PENDING",
+              },
             },
-          },
-        });
-      });
+          });
+        }
+      );
 
       await Promise.all(reservationPromises);
 
@@ -336,7 +467,7 @@ export default function BookingDetail() {
         pathname: "/stadium-booking/booking-success",
         params: {
           stadiumName: stadium?.name || "Sân thể thao",
-          selectedSlots: JSON.stringify(selectedSlots),
+          groupedReservations: JSON.stringify(groupedReservations),
           totalPrice: calculateTotalPrice().toString(),
           selectedSport:
             sports.find((s) => s.key === selectedSport)?.label || selectedSport,
@@ -459,10 +590,17 @@ export default function BookingDetail() {
         {/* Booking summary */}
         {getSelectedSlots().length > 0 && (
           <View className="mb-3 p-3 bg-gray-50 rounded-lg">
-            <Text className="text-sm text-gray-600 mb-1">
-              Đã chọn: {getSelectedSlots().length} khung giờ
+            <Text className="text-sm text-gray-600 mb-2">
+              Đã chọn: {getSelectedSlots().length} khung giờ →{" "}
+              {getGroupedReservations().length} đặt sân
             </Text>
-            <Text className="text-lg font-bold text-primary">
+            {getGroupedReservations().map((reservation, index) => (
+              <Text key={index} className="text-xs text-gray-500 mb-1">
+                • Sân {reservation.courtNumber}: {reservation.startTime} -{" "}
+                {reservation.endTime} ({reservation.slotCount} slots)
+              </Text>
+            ))}
+            <Text className="text-lg font-bold text-primary mt-1">
               Tổng tiền: {calculateTotalPrice().toLocaleString("vi-VN")} VNĐ
             </Text>
           </View>

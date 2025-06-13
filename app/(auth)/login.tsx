@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
-import GoogleLoginButton from "../../components/GoogleLoginButton";
+// import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { icons } from "../../constants";
 import authService from "../../services/auth";
 
@@ -119,11 +119,11 @@ export default function Login() {
         </View>
 
         {/* Google Login Button */}
-        <GoogleLoginButton
+        {/* <GoogleLoginButton
           title="Google"
           disabled={isLoading}
-          onError={handleGoogleLoginError}
-        />
+          onError={handleGoogleLoginError} */}
+        {/* /> */}
 
         {/* Register Link */}
         <View className="flex-row justify-center mt-2">

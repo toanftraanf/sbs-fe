@@ -427,12 +427,14 @@ export default function Booking() {
       const {
         courtNumber,
         startTime,
+        endTime,
         status: reservationStatus,
         courtType,
       } = reservation;
       console.log(`🎯 Processing filtered reservation ${index + 1}:`, {
         courtNumber,
         startTime,
+        endTime,
         status: reservationStatus,
         courtType,
         selectedFilter,
@@ -441,28 +443,46 @@ export default function Booking() {
       // Skip cancelled reservations
       if (reservationStatus === "CANCELLED") return;
 
-      // Find the time slot that matches this reservation
-      const slotIndex = timeSlots.findIndex((slot) => {
-        const [slotStartTime] = slot.split(" - ");
-        return slotStartTime === startTime;
-      });
-
       // Find the court index (courtNumber - 1 because array is 0-indexed)
       const courtIndex = courtNumber - 1;
 
-      console.log(`📍 Slot mapping:`, {
-        slotIndex,
-        courtIndex,
-        slotStartTime: timeSlots[slotIndex],
-        courtName: courts[courtIndex],
-      });
-
-      if (slotIndex !== -1 && courtIndex >= 0 && courtIndex < courts.length) {
-        status[slotIndex][courtIndex] = "selected"; // Booked slots show as green/selected
+      if (courtIndex < 0 || courtIndex >= courts.length) {
         console.log(
-          `✅ Marked slot [${slotIndex}][${courtIndex}] as selected for ${courtType} court`
+          `❌ Invalid court index: ${courtIndex} (courts length: ${courts.length})`
         );
+        return;
       }
+
+      // Mark ALL slots from startTime to endTime as selected
+      let foundStart = false;
+      let selectedSlots: string[] = [];
+
+      for (let slotIndex = 0; slotIndex < timeSlots.length; slotIndex++) {
+        const slot = timeSlots[slotIndex];
+        const [slotStartTime, slotEndTime] = slot.split(" - ");
+
+        // Check if this slot is part of the reservation
+        if (slotStartTime === startTime) {
+          foundStart = true;
+          console.log(`🎯 Found start slot at index ${slotIndex}: ${slot}`);
+        }
+
+        if (foundStart) {
+          status[slotIndex][courtIndex] = "selected"; // Booked slots show as green/selected
+          selectedSlots.push(slot);
+
+          // Stop when we reach the end time
+          if (slotEndTime === endTime) {
+            console.log(`🏁 Found end slot at index ${slotIndex}: ${slot}`);
+            break;
+          }
+        }
+      }
+
+      console.log(
+        `✅ Marked ${selectedSlots.length} slots as selected for court ${courtNumber} (${courtType}):`,
+        selectedSlots
+      );
     });
 
     setSlotStatus(status);
@@ -518,14 +538,52 @@ export default function Booking() {
       return;
     }
 
-    // Find the reservation for this slot (from filtered reservations)
+    const clickedSlot = timeSlots[rowIdx];
+    const [clickedStartTime, clickedEndTime] = clickedSlot.split(" - ");
+    const clickedCourtNumber = colIdx + 1;
+
+    console.log(`🖱️ Slot clicked:`, {
+      rowIdx,
+      colIdx,
+      slot: clickedSlot,
+      courtNumber: clickedCourtNumber,
+    });
+
+    // Find the reservation that includes this slot (multi-slot support)
     const reservation = reservations.find((res) => {
-      const slotIndex = timeSlots.findIndex((slot) => {
-        const [slotStartTime] = slot.split(" - ");
-        return slotStartTime === res.startTime;
+      // Check if this reservation is for the same court
+      if (res.courtNumber !== clickedCourtNumber) return false;
+
+      // Check if the clicked slot falls within the reservation's time range
+      const resStartTime = res.startTime;
+      const resEndTime = res.endTime;
+
+      // Convert times to minutes for comparison
+      const timeToMinutes = (time: string) => {
+        const [hours, minutes] = time.split(":").map(Number);
+        return hours * 60 + minutes;
+      };
+
+      const clickedStartMinutes = timeToMinutes(clickedStartTime);
+      const clickedEndMinutes = timeToMinutes(clickedEndTime);
+      const resStartMinutes = timeToMinutes(resStartTime);
+      const resEndMinutes = timeToMinutes(resEndTime);
+
+      // Check if clicked slot overlaps with reservation time range
+      const isWithinRange =
+        clickedStartMinutes >= resStartMinutes &&
+        clickedEndMinutes <= resEndMinutes;
+
+      console.log(`🔍 Checking reservation ${res.id}:`, {
+        resStartTime,
+        resEndTime,
+        clickedStartTime,
+        clickedEndTime,
+        isWithinRange,
+        sameCourtNumber: res.courtNumber === clickedCourtNumber,
       });
-      const courtIndex = res.courtNumber - 1;
-      return slotIndex === rowIdx && courtIndex === colIdx;
+
+      return isWithinRange;
     });
 
     if (reservation) {
@@ -884,6 +942,72 @@ export default function Booking() {
       console.log("  ❌ No today reservations found");
     }
 
+    // Helper function to group consecutive reservations for display
+    const groupConsecutiveReservations = (reservations: Reservation[]) => {
+      if (!reservations.length) return [];
+
+      // Group by user and court first
+      const groupedByUserAndCourt: { [key: string]: Reservation[] } = {};
+
+      reservations.forEach((reservation) => {
+        const key = `${reservation.userId}-${reservation.courtNumber}-${reservation.date}`;
+        if (!groupedByUserAndCourt[key]) {
+          groupedByUserAndCourt[key] = [];
+        }
+        groupedByUserAndCourt[key].push(reservation);
+      });
+
+      const displayGroups: {
+        reservations: Reservation[];
+        startTime: string;
+        endTime: string;
+        representative: Reservation;
+      }[] = [];
+
+      // For each user-court group, find consecutive time slots
+      Object.values(groupedByUserAndCourt).forEach((userCourtReservations) => {
+        // Sort by start time
+        const sorted = [...userCourtReservations].sort((a, b) =>
+          a.startTime.localeCompare(b.startTime)
+        );
+
+        let currentGroup: Reservation[] = [];
+
+        sorted.forEach((reservation, index) => {
+          if (currentGroup.length === 0) {
+            currentGroup = [reservation];
+          } else {
+            const lastReservation = currentGroup[currentGroup.length - 1];
+            // Check if current reservation starts when the last one ends
+            if (lastReservation.endTime === reservation.startTime) {
+              currentGroup.push(reservation);
+            } else {
+              // Not consecutive, finalize current group
+              displayGroups.push({
+                reservations: currentGroup,
+                startTime: currentGroup[0].startTime,
+                endTime: currentGroup[currentGroup.length - 1].endTime,
+                representative: currentGroup[0], // Use first reservation as representative
+              });
+              currentGroup = [reservation];
+            }
+          }
+
+          // If this is the last reservation, finalize the group
+          if (index === sorted.length - 1) {
+            displayGroups.push({
+              reservations: currentGroup,
+              startTime: currentGroup[0].startTime,
+              endTime: currentGroup[currentGroup.length - 1].endTime,
+              representative: currentGroup[0],
+            });
+          }
+        });
+      });
+
+      return displayGroups;
+    };
+
     const renderReservationItem = (reservation: Reservation, index: number) => (
       <TouchableOpacity
         key={reservation.id}
@@ -931,6 +1055,72 @@ export default function Booking() {
         >
           <Text className="text-white text-sm font-medium">
             {reservation.sport || "Chi tiết"}
+          </Text>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+
+    const renderGroupedReservationItem = (
+      group: {
+        reservations: Reservation[];
+        startTime: string;
+        endTime: string;
+        representative: Reservation;
+      },
+      index: number
+    ) => (
+      <TouchableOpacity
+        key={`group-${group.representative.id}-${index}`}
+        onPress={() => {
+          setSelectedReservation(group.representative);
+          setModalVisible(true);
+        }}
+        className="bg-white rounded-xl p-4 mb-3 flex-row items-center shadow-sm border border-gray-100"
+      >
+        {/* User Avatar */}
+        <View className="w-12 h-12 rounded-lg bg-gray-200 items-center justify-center mr-3">
+          {group.representative.user?.fullName ? (
+            <Text className="text-lg font-bold text-gray-600">
+              {group.representative.user.fullName.charAt(0).toUpperCase()}
+            </Text>
+          ) : (
+            <Ionicons name="person" size={20} color="#9CA3AF" />
+          )}
+        </View>
+
+        {/* Reservation Details */}
+        <View className="flex-1">
+          <Text className="font-bold text-gray-900 text-base mb-1">
+            {group.representative.user?.fullName || "Khách hàng"}
+          </Text>
+          <Text className="text-sm text-gray-600 mb-1">
+            {group.representative.sport || "Thể thao"}:{" "}
+            {group.representative.courtNumber || "N/A"}
+          </Text>
+          <Text className="text-sm text-gray-700 font-medium">
+            {group.startTime} - {group.endTime}
+          </Text>
+          {group.reservations.length > 1 && (
+            <Text className="text-xs text-blue-600">
+              ({group.reservations.length} khung giờ liên tiếp)
+            </Text>
+          )}
+          <Text className="text-xs text-gray-500">
+            Date:{" "}
+            {new Date(group.representative.date).toLocaleDateString("vi-VN")}
+          </Text>
+        </View>
+
+        {/* Action Button */}
+        <TouchableOpacity
+          onPress={() => {
+            setSelectedReservation(group.representative);
+            setModalVisible(true);
+          }}
+          className="bg-primary rounded-lg px-3 py-2"
+        >
+          <Text className="text-white text-sm font-medium">
+            {group.representative.sport || "Chi tiết"}
           </Text>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -1005,8 +1195,8 @@ export default function Booking() {
             Đơn đã xác nhận
           </Text>
           {confirmedReservations.length > 0 ? (
-            confirmedReservations.map((reservation, index) =>
-              renderReservationItem(reservation, index)
+            groupConsecutiveReservations(confirmedReservations).map(
+              (group, index) => renderGroupedReservationItem(group, index)
             )
           ) : (
             <View className="bg-white rounded-xl p-6 items-center border border-gray-100">
@@ -1024,8 +1214,8 @@ export default function Booking() {
             Đơn chờ xác nhận
           </Text>
           {pendingReservations.length > 0 ? (
-            pendingReservations.map((reservation, index) =>
-              renderReservationItem(reservation, index)
+            groupConsecutiveReservations(pendingReservations).map(
+              (group, index) => renderGroupedReservationItem(group, index)
             )
           ) : (
             <View className="bg-white rounded-xl p-6 items-center border border-gray-100">
@@ -1083,6 +1273,7 @@ export default function Booking() {
       <ReservationModal
         visible={modalVisible}
         reservation={selectedReservation}
+        userRole="OWNER"
         onClose={() => setModalVisible(false)}
         onStatusChange={handleStatusChange}
       />

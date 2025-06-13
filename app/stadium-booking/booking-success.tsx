@@ -8,13 +8,18 @@ export default function BookingSuccess() {
   const {
     stadiumName,
     selectedSlots,
+    groupedReservations,
     totalPrice,
     selectedSport,
     selectedDate,
     courtType,
   } = params;
 
+  // Support both old (selectedSlots) and new (groupedReservations) format
   const slots = selectedSlots ? JSON.parse(selectedSlots as string) : [];
+  const reservations = groupedReservations
+    ? JSON.parse(groupedReservations as string)
+    : [];
 
   const handleGoHome = () => {
     router.push("/(tabs)/stadium-booking");
@@ -35,8 +40,9 @@ export default function BookingSuccess() {
             Đặt sân thành công!
           </Text>
           <Text className="text-gray-600 text-center px-4">
-            Booking của bạn đã được ghi nhận. Vui lòng kiểm tra thông tin chi
-            tiết bên dưới.
+            {reservations.length > 0
+              ? `${reservations.length} lịch đặt sân đã được tạo. Vui lòng kiểm tra thông tin chi tiết bên dưới.`
+              : "Booking của bạn đã được ghi nhận. Vui lòng kiểm tra thông tin chi tiết bên dưới."}
           </Text>
         </View>
 
@@ -83,16 +89,32 @@ export default function BookingSuccess() {
             <View className="flex-row items-center mb-2">
               <Ionicons name="time" size={20} color="#7CB518" />
               <Text className="ml-2 text-gray-700 font-medium">
-                Khung giờ đã đặt:
+                {reservations.length > 0
+                  ? "Lịch đặt sân:"
+                  : "Khung giờ đã đặt:"}
               </Text>
             </View>
-            {slots.map((slot: any, index: number) => (
-              <View key={index} className="ml-6 mb-1">
-                <Text className="text-gray-600">
-                  • Sân {slot.courtNumber}: {slot.timeSlot}
-                </Text>
-              </View>
-            ))}
+            {reservations.length > 0
+              ? // Display grouped reservations (new format)
+                reservations.map((reservation: any, index: number) => (
+                  <View key={index} className="ml-6 mb-2">
+                    <Text className="text-gray-700 font-medium">
+                      • Sân {reservation.courtNumber}: {reservation.startTime} -{" "}
+                      {reservation.endTime}
+                    </Text>
+                    <Text className="text-gray-500 text-xs ml-2">
+                      ({reservation.slotCount} khung giờ 30 phút)
+                    </Text>
+                  </View>
+                ))
+              : // Display individual slots (old format - fallback)
+                slots.map((slot: any, index: number) => (
+                  <View key={index} className="ml-6 mb-1">
+                    <Text className="text-gray-600">
+                      • Sân {slot.courtNumber}: {slot.timeSlot}
+                    </Text>
+                  </View>
+                ))}
           </View>
 
           {/* Total Price */}
