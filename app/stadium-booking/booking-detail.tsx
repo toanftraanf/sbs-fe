@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -16,6 +17,7 @@ import DateSelector from "../../components/DateSelector";
 import StadiumSports from "../../components/StadiumSports";
 import TimeSlotGrid from "../../components/TimeSlotGrid";
 
+import { useAuth } from "@/contexts/AuthContext";
 import {
   CREATE_RESERVATION,
   GET_STADIUM_BY_ID,
@@ -83,6 +85,7 @@ const generateTimeSlots = (startTime: string, endTime: string) => {
 };
 
 export default function BookingDetail() {
+  const { user } = useAuth();
   const params = useLocalSearchParams();
   const stadiumId = params.stadiumId;
   const apolloClient = useApolloClient();
@@ -96,6 +99,7 @@ export default function BookingDetail() {
   const [selectedCourtType, setSelectedCourtType] = useState(courtTypes[0].key);
   const [slotStatus, setSlotStatus] = useState<string[][]>([]);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [createReservation] = useMutation(CREATE_RESERVATION);
   const [getStadiumReservations, { loading: reservationsLoading }] =
@@ -115,16 +119,17 @@ export default function BookingDetail() {
 
   useEffect(() => {
     if (stadium && selectedDateKey) {
-      fetchReservationsAndUpdateSlots();
+      fetchReservationsAndUpdateSlots(true);
     }
   }, [stadium, selectedDateKey]);
 
-  const fetchStadiumDetails = async () => {
+  const fetchStadiumDetails = async (forceRefresh: boolean = false) => {
     try {
       setLoading(true);
       const { data, errors } = await apolloClient.query({
         query: GET_STADIUM_BY_ID,
         variables: { id: parseInt(stadiumId as string) },
+        fetchPolicy: forceRefresh ? "network-only" : "cache-first",
       });
       if (errors)
         throw new Error(
@@ -159,13 +164,16 @@ export default function BookingDetail() {
     }
   };
 
-  const fetchReservationsAndUpdateSlots = async () => {
+  const fetchReservationsAndUpdateSlots = async (
+    forceRefresh: boolean = false
+  ) => {
     try {
       const { data } = await getStadiumReservations({
         variables: {
           stadiumId: parseInt(stadiumId as string),
           date: selectedDateKey,
         },
+        fetchPolicy: forceRefresh ? "network-only" : "cache-first",
       });
 
       if (stadium) {
@@ -411,7 +419,7 @@ export default function BookingDetail() {
     }
 
     // For now, we'll assume userId = 1 (you should get this from user context/auth)
-    const userId = 1;
+    const userId = user?.id;
     const selectedDate = dates.find((d) => d.key === selectedDateKey);
 
     if (!selectedDate) {
@@ -486,6 +494,21 @@ export default function BookingDetail() {
     }
   };
 
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchStadiumDetails(true);
+      if (stadium && selectedDateKey) {
+        await fetchReservationsAndUpdateSlots(true);
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <View className="flex-1 bg-[#F5F5F5]">
       {/* Header */}
@@ -513,6 +536,9 @@ export default function BookingDetail() {
         <ScrollView
           className="flex-1 bg-gray-100"
           contentContainerStyle={{ paddingBottom: 24 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
           {/* Sport selection */}
           <View className="px-4 pt-4 pb-2">
@@ -541,6 +567,8 @@ export default function BookingDetail() {
                     fieldList.map(() => "available")
                   );
                   setSlotStatus(defaultStatus);
+                  // Force refresh reservations for the new date
+                  fetchReservationsAndUpdateSlots(true);
                 }
               }}
             />

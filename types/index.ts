@@ -8,10 +8,12 @@ export interface AuthResponse {
   error?: string;
 }
 
+export type UserRole = "OWNER" | "CUSTOMER";
+
 export interface User {
   id: string;
   phoneNumber: string;
-  role: "OWNER" | "CUSTOMER";
+  role: UserRole;
   fullName?: string;
   email?: string;
   dob?: string;

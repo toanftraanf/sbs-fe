@@ -2,13 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   Keyboard,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  Alert,
 } from "react-native";
 import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
@@ -33,11 +33,11 @@ export default function RegisterOwner() {
 
     try {
       setLoading(true);
-      const formattedPhone = phone.startsWith('0') ? phone : `0${phone}`;
+      const formattedPhone = phone.startsWith("0") ? phone : `0${phone}`;
       await authService.registerOwner(formattedPhone, fullName.trim());
       router.push({
-        pathname: "/verify-otp",
-        params: { phoneNumber: formattedPhone }
+        pathname: "/(auth)/verify-otp",
+        params: { phoneNumber: formattedPhone },
       });
     } catch (error) {
       Alert.alert(
@@ -100,11 +100,7 @@ export default function RegisterOwner() {
         <View className="w-full h-0.5 bg-[#E0E0E0] my-6" />
 
         {/* OTP Button */}
-        <AppButton 
-          title="Gửi mã OTP" 
-          filled 
-          onPress={handleRegister}
-        />
+        <AppButton title="Gửi mã OTP" filled onPress={handleRegister} />
       </View>
     </TouchableWithoutFeedback>
   );

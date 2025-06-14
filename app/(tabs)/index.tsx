@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -33,6 +34,7 @@ export default function UserHomeRedirect() {
   );
   const [weekDates, setWeekDates] = useState(getWeekDatesLocal());
   const [isLoadingReservations, setIsLoadingReservations] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
@@ -218,13 +220,10 @@ export default function UserHomeRedirect() {
   };
 
   // Function to fetch user reservations for the current week
-  const fetchUserReservations = async () => {
+  const fetchUserReservations = async (forceRefresh: boolean = false) => {
     try {
       setIsLoadingReservations(true);
       const userId = parseInt(user?.id || "0");
-
-      // 🔧 TEMPORARY DEBUG: Test with hardcoded user ID 1 from database
-      const debugUserId = 1; // TODO: Remove this after debugging
 
       const { startDate, endDate } = getCurrentWeekDateRange();
 
@@ -232,33 +231,36 @@ export default function UserHomeRedirect() {
       console.log("  👤 User from context:", user);
       console.log("  🔑 Raw user ID:", user?.id);
       console.log("  🔢 Parsed user ID:", userId);
-      console.log("  🔧 DEBUG: Using hardcoded userId:", debugUserId);
       console.log("  📅 Date range:", { startDate, endDate });
       console.log("  📅 Today's date:", getTodayLocalDate());
-      console.log(
-        "  📊 Current date for comparison:",
-        new Date().toISOString().split("T")[0]
-      );
+      console.log("  🔄 Force refresh:", forceRefresh);
+
+      if (!userId || userId <= 0) {
+        console.log("❌ Invalid user ID, cannot fetch reservations");
+        setReservations([]);
+        return;
+      }
 
       console.log("🚀 Calling getUserReservationsByDateRange with:");
-      console.log("  📤 userId:", debugUserId);
+      console.log("  📤 userId:", userId);
       console.log("  📤 startDate:", startDate);
       console.log("  📤 endDate:", endDate);
+      console.log("  📤 forceRefresh:", forceRefresh);
 
       const userReservations = await getUserReservationsByDateRange(
-        debugUserId, // Using hardcoded ID for testing
+        userId, // Using the actual user ID
         startDate,
-        endDate
+        endDate,
+        forceRefresh
       );
 
-      console.log("📅 Raw API response:", userReservations);
       console.log(
         "📅 Number of reservations received:",
         userReservations.length
       );
 
       if (userReservations.length > 0) {
-        console.log("📅 Reservation details:");
+        console.log("📅 User reservations found:");
         userReservations.forEach((res, index) => {
           console.log(
             `  ${index + 1}. ID: ${res.id}, Date: "${res.date}", Stadium: ${
@@ -267,11 +269,9 @@ export default function UserHomeRedirect() {
           );
         });
       } else {
-        console.log("❌ NO RESERVATIONS RETURNED FROM API!");
-        console.log("   Check if:");
-        console.log("   1. User ID matches database (should be 1)");
-        console.log("   2. Date range includes 2025-06-10");
-        console.log("   3. API endpoint is working correctly");
+        console.log(
+          "✅ No reservations found for this user (expected for new customers)"
+        );
       }
 
       setReservations(userReservations);
@@ -287,7 +287,7 @@ export default function UserHomeRedirect() {
   };
 
   // Function to fetch stadium reservations for owners for the current week
-  const fetchStadiumReservations = async () => {
+  const fetchStadiumReservations = async (forceRefresh: boolean = false) => {
     try {
       setIsLoadingReservations(true);
       const ownerId = parseInt(user?.id || "0");
@@ -297,13 +297,15 @@ export default function UserHomeRedirect() {
         ownerId,
         startDate,
         endDate,
+        forceRefresh,
       });
 
       const ownerStadiumReservations =
         await getOwnerStadiumReservationsByDateRange(
           ownerId,
           startDate,
-          endDate
+          endDate,
+          forceRefresh
         );
 
       setStadiumReservations(ownerStadiumReservations);
@@ -313,6 +315,26 @@ export default function UserHomeRedirect() {
       setStadiumReservations([]);
     } finally {
       setIsLoadingReservations(false);
+    }
+  };
+
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Refresh week dates in case the date has changed
+      setWeekDates(getWeekDatesLocal());
+
+      // Refresh reservations based on user role with forceRefresh = true
+      if (user?.role === "CUSTOMER") {
+        await fetchUserReservations(true);
+      } else if (user?.role === "OWNER") {
+        await fetchStadiumReservations(true);
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -343,7 +365,17 @@ export default function UserHomeRedirect() {
 
   const renderOwnerView = () => (
     <View className="flex-1 bg-[#F5F5F5]">
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#5A983B"]}
+            tintColor="#5A983B"
+          />
+        }
+      >
         {/* Header */}
         <View className="bg-white rounded-b-2xl px-5 pt-8 pb-4">
           <View className="flex-row justify-between items-center mb-2">
@@ -556,7 +588,17 @@ export default function UserHomeRedirect() {
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-4">
+      <ScrollView
+        className="flex-1 px-4"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#5A983B"]}
+            tintColor="#5A983B"
+          />
+        }
+      >
         {/* Lịch trình của bạn */}
         <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-[#E6F4EA]">
           <View className="flex-row justify-between items-center mb-2">
@@ -752,8 +794,8 @@ export default function UserHomeRedirect() {
                     : reservation
                 )
               );
-              // Refresh owner data
-              await fetchStadiumReservations();
+              // Refresh owner data with forceRefresh
+              await fetchStadiumReservations(true);
             } else {
               setReservations((prev) =>
                 prev.map((reservation) =>
@@ -762,8 +804,8 @@ export default function UserHomeRedirect() {
                     : reservation
                 )
               );
-              // Refresh customer data
-              await fetchUserReservations();
+              // Refresh customer data with forceRefresh
+              await fetchUserReservations(true);
             }
 
             // Close the modal

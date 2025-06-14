@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -56,6 +57,7 @@ export default function Booking() {
   const [selectedStadium, setSelectedStadium] = useState<Stadium | null>(null);
   const [loadingStadiums, setLoadingStadiums] = useState(false);
   const [showStadiumDropdown, setShowStadiumDropdown] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Real data states
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
@@ -169,7 +171,7 @@ export default function Booking() {
     }
   };
 
-  const fetchTodayReservations = async () => {
+  const fetchTodayReservations = async (forceRefresh: boolean = false) => {
     if (!selectedStadium) {
       console.log("⚠️ Skipping fetchTodayReservations - no stadium selected");
       return;
@@ -193,81 +195,63 @@ export default function Booking() {
         date: today,
         courtTypeFilter: selectedFilter,
         todayActual: today,
+        forceRefresh,
       });
 
       const stadiumReservations = await getStadiumReservations(
         parseInt(selectedStadium.id.toString()),
-        today
+        today,
+        forceRefresh
       );
 
       console.log(
-        "📦 Today's raw API response:",
+        "📦 Raw TODAY's reservations:",
         stadiumReservations.length,
-        "reservations"
+        "total"
       );
 
-      // Log each reservation's details
-      if (stadiumReservations.length > 0) {
-        console.log("📋 Today's raw reservations details:");
-        stadiumReservations.forEach((res, index) => {
-          console.log(
-            `  ${index + 1}. ID: ${res.id}, Date: ${res.date}, Status: ${
-              res.status
-            }, CourtType: ${res.courtType}, StartTime: ${res.startTime}`
-          );
-        });
-      }
+      // Filter by court type for today's reservations
+      const filteredTodayReservations = stadiumReservations.filter(
+        (reservation) => {
+          if (!reservation.courtType) return true;
 
-      // Apply court type filter
-      const filteredReservations = stadiumReservations.filter((reservation) => {
-        if (!reservation.courtType) {
-          console.log(
-            "⚠️ Today's reservation has no courtType, including:",
-            reservation.id
-          );
-          return true;
+          const courtTypeLower = reservation.courtType.toLowerCase();
+          if (selectedFilter === "outdoor") {
+            return (
+              courtTypeLower.includes("outdoor") ||
+              courtTypeLower.includes("ngoài trời") ||
+              courtTypeLower.includes("sân ngoài") ||
+              courtTypeLower === "outdoor"
+            );
+          } else {
+            return (
+              courtTypeLower.includes("indoor") ||
+              courtTypeLower.includes("trong nhà") ||
+              courtTypeLower.includes("sân trong") ||
+              courtTypeLower === "indoor"
+            );
+          }
         }
-
-        const courtTypeLower = reservation.courtType.toLowerCase();
-
-        if (selectedFilter === "outdoor") {
-          const isOutdoor =
-            courtTypeLower.includes("outdoor") ||
-            courtTypeLower.includes("ngoài trời") ||
-            courtTypeLower.includes("sân ngoài") ||
-            courtTypeLower === "outdoor";
-          return isOutdoor;
-        } else {
-          const isIndoor =
-            courtTypeLower.includes("indoor") ||
-            courtTypeLower.includes("trong nhà") ||
-            courtTypeLower.includes("sân trong") ||
-            courtTypeLower === "indoor";
-          return isIndoor;
-        }
-      });
+      );
 
       console.log(
-        "🔍 Today's filtered reservations:",
-        filteredReservations.length,
+        "🔍 Filtered TODAY's reservations:",
+        filteredTodayReservations.length,
         "for",
         selectedFilter
       );
 
-      // If no filtered reservations found, show all for debugging
-      if (filteredReservations.length === 0 && stadiumReservations.length > 0) {
+      if (
+        filteredTodayReservations.length === 0 &&
+        stadiumReservations.length > 0
+      ) {
         console.log(
-          "⚠️ No today reservations match filter, showing all for debugging"
+          "⚠️ No today's reservations match filter, showing all for debugging"
         );
         setTodayReservations(stadiumReservations);
       } else {
-        setTodayReservations(filteredReservations);
+        setTodayReservations(filteredTodayReservations);
       }
-
-      console.log(
-        "✅ Today's reservations updated:",
-        filteredReservations.length || stadiumReservations.length
-      );
     } catch (error) {
       console.error("💥 Error fetching today's reservations:", error);
       setTodayReservations([]);
@@ -276,7 +260,7 @@ export default function Booking() {
     }
   };
 
-  const fetchReservationsForDate = async () => {
+  const fetchReservationsForDate = async (forceRefresh: boolean = false) => {
     if (!selectedStadium || !weekDates[selectedDate]) {
       console.log(
         "⚠️ Skipping fetchReservationsForDate - missing stadium or date"
@@ -293,6 +277,7 @@ export default function Booking() {
         date: dateStr,
         selectedDateIndex: selectedDate,
         courtTypeFilter: selectedFilter,
+        forceRefresh,
       });
 
       // Clear previous reservations first
@@ -301,7 +286,8 @@ export default function Booking() {
 
       const stadiumReservations = await getStadiumReservations(
         parseInt(selectedStadium.id.toString()),
-        dateStr
+        dateStr,
+        forceRefresh
       );
 
       // Log all courtType values to understand the data
@@ -621,9 +607,20 @@ export default function Booking() {
         )
       );
 
-      // Refresh the slot status display
+      // Also update today's reservations if needed
+      setTodayReservations((prev) =>
+        prev.map((res) =>
+          res.id === reservationId ? { ...res, status: newStatus } : res
+        )
+      );
+
+      // Refresh the data with force refresh
       if (selectedStadium) {
-        await fetchReservationsForDate();
+        if (activeTab === "schedule") {
+          await fetchReservationsForDate(true);
+        } else {
+          await fetchTodayReservations(true);
+        }
       }
 
       console.log(`✅ Successfully updated reservation status to ${newStatus}`);
@@ -795,6 +792,14 @@ export default function Booking() {
       key="schedule-tab"
       className="flex-1 bg-white"
       contentContainerStyle={{ paddingBottom: 100 }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={["#5A983B"]}
+          tintColor="#5A983B"
+        />
+      }
     >
       {/* Filter Buttons */}
       <View className="px-4 py-2">
@@ -1131,6 +1136,14 @@ export default function Booking() {
         key="today-tab"
         className="flex-1 bg-gray-50"
         contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#5A983B"]}
+            tintColor="#5A983B"
+          />
+        }
       >
         {/* Filter Status */}
         <View className="mx-4 mt-4 mb-2 flex-row items-center justify-between">
@@ -1153,16 +1166,6 @@ export default function Booking() {
               </View>
             )}
           </View>
-
-          {/* Debug refresh button */}
-          {__DEV__ && (
-            <TouchableOpacity
-              onPress={fetchTodayReservations}
-              className="bg-blue-500 px-3 py-1 rounded"
-            >
-              <Text className="text-white text-xs">Refresh Today</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         {/* Search and Filter Bar */}
@@ -1239,6 +1242,22 @@ export default function Booking() {
           )}
       </ScrollView>
     );
+  };
+
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (activeTab === "schedule") {
+        await fetchReservationsForDate(true);
+      } else {
+        await fetchTodayReservations(true);
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Show loading screen while initial data is loading

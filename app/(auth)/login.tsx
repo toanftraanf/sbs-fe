@@ -31,18 +31,43 @@ export default function Login() {
       setError(null);
 
       // Format phone number to remove any spaces or special characters
-      const formattedPhone = phone.replace(/\D/g, "");
+      let formattedPhone = phone.replace(/\D/g, "");
 
-      // Check if user exists
-      const user = await authService.checkExistingUser(formattedPhone);
+      // Ensure phone number starts with 0 for Vietnamese format
+      if (!formattedPhone.startsWith("0") && formattedPhone.length >= 9) {
+        formattedPhone = "0" + formattedPhone;
+      }
+
+      console.log("🔄 Login attempt for phone:", formattedPhone);
+      console.log("📱 Original input:", phone);
+      console.log("📱 Formatted phone:", formattedPhone);
+
+      // First check if user exists as CUSTOMER
+      console.log("🔍 Checking if user exists as CUSTOMER...");
+      let user = await authService.checkExistingUser(
+        formattedPhone,
+        "CUSTOMER"
+      );
+
+      console.log("📋 CUSTOMER check result:", user);
+
+      // If not found as CUSTOMER, check as OWNER
+      if (!user) {
+        console.log("🔍 Not found as CUSTOMER, checking as OWNER...");
+        user = await authService.checkExistingUser(formattedPhone, "OWNER");
+        console.log("📋 OWNER check result:", user);
+      }
 
       if (user) {
+        console.log("✅ User found, proceeding to OTP verification");
+        console.log("👤 User details:", user);
         // User exists, proceed to OTP verification for login
         router.push({
           pathname: "/(auth)/verify-otp",
           params: { phoneNumber: formattedPhone, isLogin: "true" },
         });
       } else {
+        console.log("❌ User not found, redirecting to registration");
         // User doesn't exist, redirect to registration
         router.push({
           pathname: "/(auth)/register-user",
@@ -50,6 +75,7 @@ export default function Login() {
         });
       }
     } catch (error) {
+      console.error("❌ Login error:", error);
       setError(error instanceof Error ? error.message : "Đã xảy ra lỗi");
     } finally {
       setIsLoading(false);

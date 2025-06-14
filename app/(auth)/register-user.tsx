@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   Keyboard,
   Text,
@@ -13,14 +14,53 @@ import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
 // import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { icons } from "../../constants";
+import authService from "../../services/auth";
 
 export default function RegisterUser() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleGoogleLoginError = (errorMessage: string) => {
-    setError(errorMessage);
+    // setError(errorMessage);
+  };
+
+  const handleRegister = async () => {
+    if (!fullName.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập họ và tên");
+      return;
+    }
+
+    if (!phone.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập số điện thoại");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const formattedPhone = phone.startsWith("0") ? phone : `0${phone}`;
+
+      console.log("🔄 Starting CUSTOMER registration for:", formattedPhone);
+
+      await authService.registerCustomer(formattedPhone, fullName.trim());
+
+      console.log(
+        "✅ Customer registration successful, navigating to OTP verification"
+      );
+
+      router.push({
+        pathname: "/(auth)/verify-otp",
+        params: { phoneNumber: formattedPhone },
+      });
+    } catch (error) {
+      console.error("❌ Registration failed:", error);
+      Alert.alert(
+        "Lỗi",
+        error instanceof Error ? error.message : "Đã có lỗi xảy ra"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,21 +107,15 @@ export default function RegisterUser() {
           containerClassName="mb-8"
         />
 
-        {/* Error Message */}
-        {error && (
-          <Text className="text-red-500 mb-4 text-center">{error}</Text>
-        )}
-
         {/* Divider */}
         <View className="w-full h-0.5 bg-[#E0E0E0] my-6" />
 
         {/* OTP Button */}
         <AppButton
-          title="Gửi mã OTP"
+          title={loading ? "Đang xử lý..." : "Gửi mã OTP"}
           filled
-          onPress={() => {
-            router.push("/(auth)/user-information-step1");
-          }}
+          onPress={handleRegister}
+          disabled={loading}
         />
 
         {/* Or divider */}

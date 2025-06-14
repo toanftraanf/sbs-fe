@@ -7,9 +7,10 @@ import {
   GET_USER,
   GOOGLE_AUTH_MOBILE,
   LOGOUT_MUTATION,
+  REGISTER_CUSTOMER,
   REGISTER_OWNER,
   RESET_OTP,
-  UPDATE_USER_MUTATION,
+  UPDATE_USER_MUTATION
 } from "../graphql";
 
 class AuthService {
@@ -94,12 +95,13 @@ class AuthService {
     }
   }
 
-  public async checkExistingUser(phoneNumber: string): Promise<any> {
+  public async checkExistingUser(phoneNumber: string, userRole: string): Promise<any> {
     try {
       const { data } = await apolloClient.mutate({
         mutation: CHECK_EXISTING_USER,
         variables: {
           phoneNumber,
+          userRole,
         },
       });
 
@@ -215,6 +217,28 @@ class AuthService {
 
       if (data?.registerOwner) {
         return data.registerOwner;
+      }
+
+      throw new Error("Registration failed");
+    } catch (error) {
+      throw error instanceof Error
+        ? error
+        : new Error("An unknown error occurred");
+    }
+  }
+
+  public async registerCustomer(phoneNumber: string, fullName: string): Promise<any> {
+    try {
+      const { data } = await apolloClient.mutate({
+        mutation: REGISTER_CUSTOMER,
+        variables: {
+          phoneNumber,
+          fullName,
+        },
+      });
+
+      if (data?.registerCustomer) {
+        return data.registerCustomer;
       }
 
       throw new Error("Registration failed");

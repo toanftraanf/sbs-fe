@@ -23,8 +23,8 @@ export const GOOGLE_AUTH_MOBILE = gql`
 `;
 
 export const CHECK_EXISTING_USER = gql`
-  mutation CheckExistingUser($phoneNumber: String!) {
-    checkExistingUser(phoneNumber: $phoneNumber) {
+  mutation CheckExistingUser($phoneNumber: String!, $userRole: String!) {
+    checkExistingUser(phoneNumber: $phoneNumber, userRole: $userRole) {
       id
       phoneNumber
       status
@@ -64,6 +64,20 @@ export const RESET_OTP = gql`
 export const REGISTER_OWNER = gql`
   mutation RegisterOwner($phoneNumber: String!, $fullName: String!) {
     registerOwner(phoneNumber: $phoneNumber, fullName: $fullName) {
+      id
+      phoneNumber
+      fullName
+      status
+      isVerified
+      role
+    }
+  }
+`;
+
+// TODO: Add proper REGISTER_CUSTOMER mutation in backend
+export const REGISTER_CUSTOMER = gql`
+  mutation RegisterCustomer($phoneNumber: String!, $fullName: String!) {
+    registerCustomer(phoneNumber: $phoneNumber, fullName: $fullName) {
       id
       phoneNumber
       fullName

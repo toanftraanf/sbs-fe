@@ -234,14 +234,14 @@ export const createReservation = async (input: CreateReservationInput): Promise<
 /**
  * Get reservations for a specific stadium on a specific date
  */
-export const getStadiumReservations = async (stadiumId: number, date: string): Promise<Reservation[]> => {
+export const getStadiumReservations = async (stadiumId: number, date: string, forceRefresh: boolean = false): Promise<Reservation[]> => {
   try {
-    console.log('Fetching stadium reservations for:', { stadiumId, date });
+    console.log('Fetching stadium reservations for:', { stadiumId, date, forceRefresh });
     
     const { data } = await apolloClient.query({
       query: GET_STADIUM_RESERVATIONS,
       variables: { stadiumId, date },
-      fetchPolicy: 'cache-first',
+      fetchPolicy: forceRefresh ? 'network-only' : 'cache-first',
       errorPolicy: 'all'
     });
     
@@ -256,14 +256,14 @@ export const getStadiumReservations = async (stadiumId: number, date: string): P
 /**
  * Get all reservations for a specific user (customer)
  */
-export const getUserReservations = async (userId: number): Promise<Reservation[]> => {
+export const getUserReservations = async (userId: number, forceRefresh: boolean = false): Promise<Reservation[]> => {
   try {
-    console.log('Fetching user reservations for userId:', userId);
+    console.log('Fetching user reservations for userId:', userId, 'forceRefresh:', forceRefresh);
     
     const { data } = await apolloClient.query({
       query: GET_USER_RESERVATIONS,
       variables: { userId },
-      fetchPolicy: 'cache-first',
+      fetchPolicy: forceRefresh ? 'network-only' : 'cache-first',
       errorPolicy: 'all'
     });
     return data.userReservations || [];
@@ -276,12 +276,12 @@ export const getUserReservations = async (userId: number): Promise<Reservation[]
 /**
  * Get all reservations for stadiums owned by a specific owner
  */
-export const getOwnerStadiumReservations = async (ownerId: number): Promise<Reservation[]> => {
+export const getOwnerStadiumReservations = async (ownerId: number, forceRefresh: boolean = false): Promise<Reservation[]> => {
   try {    
     const { data } = await apolloClient.query({
       query: GET_OWNER_STADIUM_RESERVATIONS,
       variables: { ownerId },
-      fetchPolicy: 'cache-first',
+      fetchPolicy: forceRefresh ? 'network-only' : 'cache-first',
       errorPolicy: 'all'
     });
     
@@ -298,15 +298,16 @@ export const getOwnerStadiumReservations = async (ownerId: number): Promise<Rese
 export const getUserReservationsByDateRange = async (
   userId: number,
   startDate: string,
-  endDate: string
+  endDate: string,
+  forceRefresh: boolean = false
 ): Promise<Reservation[]> => {
   try {
-    console.log('Fetching user reservations by date range:', { userId, startDate, endDate });
+    console.log('Fetching user reservations by date range:', { userId, startDate, endDate, forceRefresh });
     
     const { data } = await apolloClient.query({
       query: GET_USER_RESERVATIONS_BY_DATE_RANGE,
       variables: { userId },
-      fetchPolicy: 'cache-first',
+      fetchPolicy: forceRefresh ? 'network-only' : 'cache-first',
       errorPolicy: 'all'
     });
     
@@ -332,15 +333,16 @@ export const getUserReservationsByDateRange = async (
 export const getOwnerStadiumReservationsByDateRange = async (
   ownerId: number,
   startDate: string,
-  endDate: string
+  endDate: string,
+  forceRefresh: boolean = false
 ): Promise<Reservation[]> => {
   try {
-    console.log('Fetching owner stadium reservations by date range:', { ownerId, startDate, endDate });
+    console.log('Fetching owner stadium reservations by date range:', { ownerId, startDate, endDate, forceRefresh });
     
     const { data } = await apolloClient.query({
       query: GET_OWNER_STADIUM_RESERVATIONS_BY_DATE_RANGE,
       variables: { ownerId, startDate, endDate },
-      fetchPolicy: 'cache-first',
+      fetchPolicy: forceRefresh ? 'network-only' : 'cache-first',
       errorPolicy: 'all'
     });
     
