@@ -590,6 +590,7 @@ export default function UserHomeRedirect() {
 
       <ScrollView
         className="flex-1 px-4"
+        contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

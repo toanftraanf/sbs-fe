@@ -1,5 +1,5 @@
 import { images } from "@/constants";
-import { useApolloClient } from "@apollo/client";
+import { useApolloClient, useQuery } from "@apollo/client";
 import { FontAwesome, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -13,29 +13,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GET_STADIUM_BY_ID } from "../../graphql";
-import { Stadium } from "../../types";
-
-const hardcodedReviews = [
-  {
-    id: 1,
-    name: "Huỳnh văn B",
-    comment: "Thân thiện, kĩ năng tốt.",
-    rating: 5,
-  },
-  {
-    id: 2,
-    name: "Huỳnh văn K",
-    comment: "Thân thiện, kĩ năng tốt.",
-    rating: 5,
-  },
-  {
-    id: 3,
-    name: "Huỳnh văn H",
-    comment: "Thân thiện, kĩ năng tốt.",
-    rating: 5,
-  },
-];
+import {
+  GET_REVIEW_STATS,
+  GET_STADIUM_BY_ID,
+  GET_STADIUM_REVIEWS,
+} from "../../graphql";
+import { Review, ReviewStats, Stadium } from "../../types";
 
 export default function StadiumDetail() {
   const { stadiumId } = useLocalSearchParams();
@@ -43,6 +26,23 @@ export default function StadiumDetail() {
   const [loading, setLoading] = useState(true);
   const apolloClient = useApolloClient();
   const router = useRouter();
+
+  // Fetch reviews and review stats
+  const { data: reviewsData, loading: reviewsLoading } = useQuery(
+    GET_STADIUM_REVIEWS,
+    {
+      variables: { stadiumId: parseInt(stadiumId as string) },
+      skip: !stadiumId,
+    }
+  );
+
+  const { data: reviewStatsData, loading: reviewStatsLoading } = useQuery(
+    GET_REVIEW_STATS,
+    {
+      variables: { stadiumId: parseInt(stadiumId as string) },
+      skip: !stadiumId,
+    }
+  );
 
   useEffect(() => {
     fetchStadiumDetails();
@@ -66,6 +66,51 @@ export default function StadiumDetail() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const reviews: Review[] = reviewsData?.stadiumReviews || [];
+  const reviewStats: ReviewStats | null = reviewStatsData?.reviewStats || null;
+
+  const renderUserAvatar = (user: Review["user"]) => {
+    if (user?.avatar?.url) {
+      return (
+        <Image
+          source={{ uri: user.avatar.url }}
+          className="w-8 h-8 rounded-full mr-3"
+          onError={() => console.log("Failed to load avatar")}
+        />
+      );
+    }
+
+    if (user?.fullName) {
+      const initials = user.fullName
+        .split(" ")
+        .map((name) => name.charAt(0))
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+
+      return (
+        <View className="w-8 h-8 rounded-full bg-[#7CB518] mr-3 items-center justify-center">
+          <Text className="text-white text-xs font-bold">{initials}</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View className="w-8 h-8 rounded-full bg-gray-300 mr-3 items-center justify-center">
+        <Ionicons name="person" size={16} color="#666" />
+      </View>
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   if (loading) {
@@ -174,31 +219,85 @@ export default function StadiumDetail() {
           </View>
 
           {/* Reviews */}
-          <Text className="font-bold text-base mb-2">Đánh giá</Text>
-          <View className="flex-row items-center mb-2">
-            <Text className="text-lg font-bold text-[#444] mr-2">4.8</Text>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <FontAwesome key={i} name="star" size={18} color="#FFD600" />
-            ))}
+          <View className="flex-row items-center justify-between mb-2">
+            <Text className="font-bold text-base">Đánh giá</Text>
+            <TouchableOpacity
+              onPress={() => {
+                router.push({
+                  pathname: "/stadium-booking/review",
+                  params: { stadiumId: stadium.id },
+                });
+              }}
+              className="p-1"
+            >
+              <Ionicons
+                name="chevron-forward-outline"
+                size={20}
+                color="#7CB518"
+              />
+            </TouchableOpacity>
           </View>
-          {hardcodedReviews.map((review) => (
-            <View key={review.id} className="flex-row items-center mb-2">
-              <View className="flex-1">
-                <Text className="font-bold text-sm text-gray-900">
-                  {review.name}
+          {reviewStatsLoading ? (
+            <ActivityIndicator size="small" color="#7CB518" />
+          ) : reviewStats ? (
+            <>
+              <View className="flex-row items-center mb-2">
+                <Text className="text-lg font-bold text-[#444] mr-2">
+                  {reviewStats.averageRating.toFixed(1)}
                 </Text>
-                <Text className="text-gray-500 text-xs mb-1">
-                  {review.comment}
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <FontAwesome
+                    key={i}
+                    name="star"
+                    size={18}
+                    color={
+                      i <= Math.round(reviewStats.averageRating)
+                        ? "#FFD600"
+                        : "#E0E0E0"
+                    }
+                  />
+                ))}
+                <Text className="ml-2 text-gray-500 text-sm">
+                  ({reviewStats.totalReviews} đánh giá)
                 </Text>
               </View>
-              <View className="flex-row items-center">
-                <Text className="text-green-600 font-bold text-base mr-1">
-                  {review.rating}
+
+              {reviewsLoading ? (
+                <ActivityIndicator size="small" color="#7CB518" />
+              ) : reviews.length > 0 ? (
+                reviews.slice(0, 3).map((review) => (
+                  <View key={review.id} className="flex-row items-start mb-3">
+                    {renderUserAvatar(review.user)}
+                    <View className="flex-1">
+                      <View className="flex-row items-center justify-between mb-1">
+                        <Text className="font-bold text-sm text-gray-900">
+                          {review.user.fullName || "Người dùng ẩn danh"}
+                        </Text>
+                        <View className="flex-row items-center">
+                          <Text className="text-green-600 font-bold text-sm mr-1">
+                            {review.rating}
+                          </Text>
+                          <FontAwesome name="star" size={12} color="#FFD600" />
+                        </View>
+                      </View>
+                      <Text className="text-gray-500 text-xs mb-1">
+                        {review.comment}
+                      </Text>
+                      <Text className="text-gray-400 text-xs">
+                        {formatDate(review.createdAt)}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text className="text-gray-500 text-sm">
+                  Chưa có đánh giá nào
                 </Text>
-                <FontAwesome name="star" size={14} color="#FFD600" />
-              </View>
-            </View>
-          ))}
+              )}
+            </>
+          ) : (
+            <Text className="text-gray-500 text-sm">Chưa có đánh giá nào</Text>
+          )}
 
           {/* Contact info */}
           <Text className="font-bold text-base mt-4 mb-2">Liên hệ</Text>

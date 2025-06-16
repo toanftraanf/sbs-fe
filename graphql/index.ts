@@ -411,6 +411,60 @@ export const CREATE_RESERVATION = gql`
   }
 `;
 
+// =============================================================================
+// REVIEW QUERIES & MUTATIONS
+// =============================================================================
+
+export const CREATE_REVIEW = gql`
+  mutation CreateReview($createReviewInput: CreateReviewInput!) {
+    createReview(createReviewInput: $createReviewInput) {
+      id
+      reservationId
+      stadiumId
+      userId
+      rating
+      comment
+      createdAt
+    }
+  }
+`;
+
+export const GET_STADIUM_REVIEWS = gql`
+  query GetStadiumReviews($stadiumId: Int!) {
+    stadiumReviews(stadiumId: $stadiumId) {
+      id
+      rating
+      comment
+      createdAt
+      user {
+        id
+        fullName
+        avatarId
+        avatar {
+          id
+          url
+        }
+      }
+    }
+  }
+`;
+
+export const GET_REVIEW_STATS = gql`
+  query GetReviewStats($stadiumId: Int!) {
+    reviewStats(stadiumId: $stadiumId) {
+      averageRating
+      totalReviews
+      ratingBreakdown {
+        star1
+        star2
+        star3
+        star4
+        star5
+      }
+    }
+  }
+`;
+
 export const GET_STADIUM_RESERVATIONS = gql`
   query GetStadiumReservations($stadiumId: Int!, $date: String!) {
     stadiumReservations(stadiumId: $stadiumId, date: $date) {
@@ -443,6 +497,17 @@ export const GET_USER_RESERVATIONS = gql`
       status
       createdAt
       updatedAt
+      user {
+        id
+        phoneNumber
+        fullName
+        email
+        avatarId
+        avatar {
+          id
+          url
+        }
+      }
       stadium {
         id
         name
@@ -502,6 +567,17 @@ export const GET_USER_RESERVATIONS_BY_DATE_RANGE = gql`
       totalPrice
       status
       createdAt
+      user {
+        id
+        phoneNumber
+        fullName
+        email
+        avatarId
+        avatar {
+          id
+          url
+        }
+      }
       stadium {
         id
         name
@@ -531,6 +607,11 @@ export const GET_OWNER_STADIUM_RESERVATIONS_BY_DATE_RANGE = gql`
         phoneNumber
         fullName
         email
+        avatarId
+        avatar {
+          id
+          url
+        }
       }
       stadium {
         id

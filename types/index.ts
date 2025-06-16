@@ -191,6 +191,11 @@ export interface Reservation {
     phoneNumber: string;
     fullName?: string;
     email?: string;
+    avatarId?: string;
+    avatar?: {
+      id: string;
+      url: string;
+    };
   };
   stadium?: {
     id: number;
@@ -212,4 +217,43 @@ export interface CreateReservationInput {
   endTime: string;
   totalPrice: number;
   status?: string;
+}
+
+export interface Review {
+  id: number;
+  reservationId: number;
+  stadiumId: number;
+  userId: number;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  user: {
+    id: number;
+    fullName: string;
+    avatarId?: string;
+    avatar?: {
+      id: string;
+      url: string;
+    };
+  };
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingBreakdown: {
+    star1: number;
+    star2: number;
+    star3: number;
+    star4: number;
+    star5: number;
+  };
+}
+
+export interface CreateReviewInput {
+  reservationId: number;
+  stadiumId: number;
+  userId: number;
+  rating: number;
+  comment: string;
 } 

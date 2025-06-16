@@ -21,9 +21,12 @@ interface User {
   fullName?: string;
   email?: string;
   phoneNumber?: string;
-  avatarUrl?: string;
   role?: string;
   userType?: string;
+  avatar?: {
+    id: string;
+    url: string;
+  };
 }
 
 // Owner menu items - Main features
@@ -259,6 +262,7 @@ export default function Setting() {
           <ProfileHeader
             name={getUserDisplayName()}
             subtitle={getUserSubtitle()}
+            avatarUrl={userProfile?.avatar?.url}
             onPress={() => {
               router.push("/profile/profile");
             }}
@@ -320,6 +324,7 @@ export default function Setting() {
         <ProfileHeader
           name={getUserDisplayName()}
           subtitle={getUserSubtitle()}
+          avatarUrl={userProfile?.avatar?.url}
           onPress={() => {
             router.push("/profile/profile");
           }}
@@ -339,6 +344,15 @@ export default function Setting() {
         >
           {/* Green Section - User Features */}
           <SettingsSection backgroundColor="#E8F5E8" marginBottom={16}>
+            <SettingsMenuItem
+              title="Lịch sử đặt sân của bạn"
+              icon="time"
+              iconColor="#5A983B"
+              variant="customer"
+              onPress={() => {
+                router.push("/stadium-booking/booking-history");
+              }}
+            />
             <SettingsMenuItem
               title="Lịch sử sự kiện của bạn"
               icon="calendar"

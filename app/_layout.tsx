@@ -37,6 +37,18 @@ export default function RootLayout() {
               name="profile/profile"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="stadium-booking/review"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="stadium-booking/submit-review"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="stadium-booking/booking-history"
+              options={{ headerShown: false }}
+            />
           </Stack>
         </AuthGuard>
       </ApolloProvider>

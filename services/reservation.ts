@@ -138,6 +138,15 @@ const GET_USER_RESERVATIONS_BY_DATE_RANGE = gql`
         id
         name
       }
+      user {
+        id
+        phoneNumber
+        fullName
+        email
+        avatar {
+          url
+        }
+      }
     }
   }
 `;

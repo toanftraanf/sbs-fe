@@ -12,6 +12,11 @@ export interface User {
   level?: string;
   email?: string;
   phoneNumber: string;
+  avatarId?: string;
+  avatar?: {
+    id: string;
+    url: string;
+  };
 }
 
 const GET_USER = gql`
@@ -26,6 +31,11 @@ const GET_USER = gql`
       level
       email
       phoneNumber
+      avatarId
+      avatar {
+        id
+        url
+      }
     }
   }
 `;

@@ -1,6 +1,7 @@
 import { updateReservationStatus } from "@/services/reservation";
 import { Reservation } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -569,8 +570,40 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
                 <Text className="text-lg font-bold text-green-600">
                   Hoàn thành
                 </Text>
+                <Text className="text-sm text-gray-600">
+                  Lịch đặt đã được hoàn thành
+                </Text>
               </View>
             </View>
+
+            {/* Review Button for Customers */}
+            {userRole === "CUSTOMER" && (
+              <TouchableOpacity
+                onPress={() => {
+                  // Navigate to submit review screen
+                  onClose(); // Close the modal first
+                  router.push({
+                    pathname: "/stadium-booking/submit-review",
+                    params: {
+                      reservationId: reservation.id.toString(),
+                      stadiumId: reservation.stadiumId.toString(),
+                      stadiumName: reservation.stadium?.name || "Sân thể thao",
+                      date: reservation.date,
+                      startTime: reservation.startTime,
+                      endTime: reservation.endTime,
+                      courtNumber: reservation.courtNumber.toString(),
+                      sport: reservation.sport || "Thể thao",
+                    },
+                  });
+                }}
+                className="mt-4 bg-primary rounded-lg py-3 px-4 flex-row items-center justify-center"
+              >
+                <Ionicons name="star" size={20} color="white" />
+                <Text className="text-white font-semibold text-base ml-2">
+                  Đánh giá và nhận xét
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
