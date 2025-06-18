@@ -99,8 +99,8 @@ export default function StadiumInformationStep1() {
       // Handle location data - prefer new fields, fallback to googleMap
       if (data.address || data.googleMap) {
         setLocation({
-          latitude: data.latitude || 21.0285, // Use stored coordinates or default
-          longitude: data.longitude || 105.8542,
+          latitude: data.latitude || 10.852909, // Use stored coordinates or default
+          longitude: data.longitude || 106.789989,
           address: data.address || data.googleMap || "",
         });
       }

@@ -39,8 +39,8 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(
     initialLocation || {
-      latitude: 21.0285,
-      longitude: 105.8542, // Default to Hanoi
+      latitude: 10.852909,
+      longitude: 106.789989, // Default to Hanoi
       address: "",
     }
   );
@@ -72,7 +72,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   }, [visible]);
 
   const fetchAddressForInitialLocation = async () => {
-    const address = await reverseGeocode(21.0285, 105.8542);
+    const address = await reverseGeocode(10.852909, 106.789989);
     setSelectedLocation((prev) => ({
       ...prev,
       address: address,
