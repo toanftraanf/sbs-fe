@@ -203,8 +203,8 @@ export default function StadiumBooking() {
       Alert.alert("Lỗi", "Không thể lấy vị trí hiện tại");
       // Fallback to default location (Hanoi)
       setCurrentLocation({ latitude: 21.026745, longitude: 105.801982 });
-      setCurrentAddress("Hà Nội, Việt Nam");
-      setFullAddress("Hà Nội, Việt Nam");
+      setCurrentAddress("Thủ đức, Tp Hồ Chí Minh, Việt Nam");
+      setFullAddress("Thủ đức, Tp Hồ Chí Minh, Việt Nam");
     } finally {
       setLoading(false);
     }
@@ -232,8 +232,8 @@ export default function StadiumBooking() {
         // Try with just district and city
         const parts = addressToSearch.split(" ");
         const broaderSearchTerms = [
-          "Hà Nội", // City only
-          "Đức Giang Hà Nội", // Ward + City
+          "Hồ Chí Minh", // City only
+          "Thủ Đức Hồ chí Minh", // Ward + City
           parts.slice(-2).join(" "), // Last 2 parts
         ];
 
