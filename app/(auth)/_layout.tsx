@@ -25,12 +25,8 @@ const AuthLayout = () => {
         options={{ title: "Xác thực OTP", headerShown: false }}
       />
       <Stack.Screen
-        name="user-information-step1"
-        options={{ title: "Thông tin cá nhân 1", headerShown: false }}
-      />
-      <Stack.Screen
-        name="user-information-step2"
-        options={{ title: "Thông tin cá nhân 2", headerShown: false }}
+        name="user-information"
+        options={{ title: "Thông tin cá nhân", headerShown: false }}
       />
       <Stack.Screen
         name="stadium-information-step1"

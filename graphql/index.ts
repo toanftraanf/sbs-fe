@@ -118,6 +118,8 @@ export const UPDATE_USER_MUTATION = gql`
       dob
       sex
       address
+      latitude
+      longitude
       userType
       level
       status

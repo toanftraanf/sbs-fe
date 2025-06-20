@@ -10,6 +10,8 @@ interface UserProfile {
   dob?: string;
   sex?: "MALE" | "FEMALE" | "OTHER";
   address?: string;
+  latitude?: number;
+  longitude?: number;
   userType?: "PLAYER" | "COACH";
   level?: string;
   role: "OWNER" | "CUSTOMER";

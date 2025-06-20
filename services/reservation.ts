@@ -311,7 +311,6 @@ export const getUserReservationsByDateRange = async (
   forceRefresh: boolean = false
 ): Promise<Reservation[]> => {
   try {
-    console.log('Fetching user reservations by date range:', { userId, startDate, endDate, forceRefresh });
     
     const { data } = await apolloClient.query({
       query: GET_USER_RESERVATIONS_BY_DATE_RANGE,
@@ -328,7 +327,6 @@ export const getUserReservationsByDateRange = async (
       return reservation.date >= startDate && reservation.date <= endDate;
     });
     
-    console.log('✅ Filtered reservations by date range:', filteredReservations.length, 'between', startDate, 'and', endDate);
     return filteredReservations;
   } catch (error) {
     console.error('💥 Error fetching user reservations by date range:', error);

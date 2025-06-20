@@ -73,4 +73,70 @@ export const OWNER_APP_ITEMS: MenuItem[] = [
     iconColor: "#FF5722",
     isDestructive: true,
   },
+];
+
+// Customer menu items - Main features (Green section)
+export const CUSTOMER_MAIN_ITEMS: MenuItem[] = [
+  {
+    id: "booking-history",
+    title: "Lịch sử đặt sân của bạn",
+    icon: "time",
+    route: "/stadium-booking/booking-history",
+    iconColor: "#5A983B",
+  },
+  {
+    id: "event-history",
+    title: "Lịch sử sự kiện của bạn",
+    icon: "calendar",
+    route: null,
+    iconColor: "#5A983B",
+  },
+  {
+    id: "promotions",
+    title: "Ưu đãi cho bạn",
+    icon: "gift",
+    route: null,
+    iconColor: "#5A983B",
+  },
+  {
+    id: "account-management",
+    title: "Tài khoản của bạn",
+    icon: "shield-checkmark",
+    route: null,
+    iconColor: "#5A983B",
+  },
+];
+
+// Customer menu items - App features (White section)
+export const CUSTOMER_APP_ITEMS: MenuItem[] = [
+  {
+    id: "terms",
+    title: "Điều khoản và điều kiện",
+    icon: "document-text",
+    route: null,
+    iconColor: "#6B7280",
+  },
+  {
+    id: "about",
+    title: "Về chúng tôi",
+    icon: "information-circle",
+    route: null,
+    iconColor: "#6B7280",
+  },
+  {
+    id: "delete-account",
+    title: "Xóa tài khoản",
+    icon: "trash",
+    route: null,
+    iconColor: "#EF4444",
+    isDestructive: true,
+  },
+  {
+    id: "logout",
+    title: "Đăng xuất",
+    icon: "log-out",
+    route: null,
+    iconColor: "#EF4444",
+    isDestructive: true,
+  },
 ]; 

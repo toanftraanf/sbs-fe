@@ -2,7 +2,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getStadiumsByLocation, getStadiumsByName } from "@/services/stadium";
 import { getUserById } from "@/services/user";
 import { StadiumMapData } from "@/types/stadium";
-import * as Location from "expo-location";
+import {
+  getCurrentLocationWithLoading,
+  LocationResult,
+  requestLocationPermission
+} from "@/utils";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Animated } from "react-native";
 import MapView from "react-native-maps";
@@ -43,7 +47,20 @@ export default function useStadiumBooking() {
   };
 
   useEffect(() => {
-    requestLocationPermission();
+    const initializeLocation = async () => {
+      const permission = await requestLocationPermission();
+      if (permission.granted) {
+        setLocationPermission(true);
+        getCurrentLocation();
+      } else {
+        Alert.alert(
+          "Quyền truy cập vị trí",
+          "Ứng dụng cần quyền truy cập vị trí để hiển thị sân bóng gần bạn"
+        );
+      }
+    };
+    
+    initializeLocation();
     fetchUser();
   }, []);
 
@@ -53,79 +70,55 @@ export default function useStadiumBooking() {
     }
   }, [currentLocation, fullAddress]);
 
-  const requestLocationPermission = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        setLocationPermission(true);
-        getCurrentLocation();
-      } else {
-        Alert.alert(
-          "Quyền truy cập vị trí",
-          "Ứng dụng cần quyền truy cập vị trí để hiển thị sân bóng gần bạn",
-          [
-            { text: "Hủy", style: "cancel" },
-            {
-              text: "Cho phép",
-              onPress: () => Location.requestForegroundPermissionsAsync(),
-            },
-          ]
-        );
-      }
-    } catch (error) {
-      console.error("Error requesting location permission:", error);
-    }
-  };
-
   const getCurrentLocation = async () => {
     try {
       setLoading(true);
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      const { latitude, longitude } = location.coords;
-      setCurrentLocation({ latitude, longitude });
-
-      const address = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
       
-      if (address && address.length > 0) {
-        const addr = address[0];
-        const addressParts = [
-          addr.streetNumber,
-          addr.street,
-          addr.name,
-          addr.district,
-          addr.city || addr.region,
-          addr.country,
-        ].filter((part) => part && part.trim() !== "");
+      const location = await getCurrentLocationWithLoading('short', {
+        onStart: () => setLoading(true),
+        onComplete: (result: LocationResult | null) => {
+          if (result) {
+            setCurrentLocation({ 
+              latitude: result.latitude, 
+              longitude: result.longitude 
+            });
+            setCurrentAddress(result.address);
+            
+            // Also get full address format for fullAddress state
+            getCurrentLocationWithLoading('full').then(fullResult => {
+              if (fullResult) {
+                setFullAddress(fullResult.address);
+              }
+            });
+          } else {
+            // Fallback to default location
+            setCurrentLocation({ latitude: 21.026745, longitude: 105.801982 });
+            setCurrentAddress("Thủ đức, Tp Hồ Chí Minh, Việt Nam");
+            setFullAddress("Thủ đức, Tp Hồ Chí Minh, Việt Nam");
+          }
+        },
+        onError: (error: any) => {
+          console.error("Error getting current location:", error);
+          Alert.alert("Lỗi", "Không thể lấy vị trí hiện tại");
+          // Fallback to default location
+          setCurrentLocation({ latitude: 21.026745, longitude: 105.801982 });
+          setCurrentAddress("Thủ đức, Tp Hồ Chí Minh, Việt Nam");
+          setFullAddress("Thủ đức, Tp Hồ Chí Minh, Việt Nam");
+        },
+      });
 
-        const fullAddressStr = addressParts.join(" ");
-        const shortAddress = `${addr.district || ""} ${addr.city || addr.region || ""}`.trim();
-
-        setCurrentAddress(shortAddress || fullAddressStr || `${latitude}, ${longitude}`);
-        setFullAddress(fullAddressStr || `${latitude}, ${longitude}`);
-      }
-
-      if (mapRef.current) {
+      // Animate map to location
+      if (location && mapRef.current) {
         mapRef.current.animateToRegion(
           {
-            latitude,
-            longitude,
+            latitude: location.latitude,
+            longitude: location.longitude,
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           },
           1000
         );
       }
-    } catch (error) {
-      console.error("Error getting current location:", error);
-      Alert.alert("Lỗi", "Không thể lấy vị trí hiện tại");
-      setCurrentLocation({ latitude: 21.026745, longitude: 105.801982 });
-      setCurrentAddress("Thủ đức, Tp Hồ Chí Minh, Việt Nam");
-      setFullAddress("Thủ đức, Tp Hồ Chí Minh, Việt Nam");
     } finally {
       setLoading(false);
     }

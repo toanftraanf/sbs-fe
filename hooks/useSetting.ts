@@ -4,9 +4,22 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert } from "react-native";
 
+interface User {
+  id: number;
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string;
+  role?: string;
+  userType?: string;
+  avatar?: {
+    id: string;
+    url: string;
+  };
+}
+
 export default function useSetting() {
   const { user, logout } = useAuth();
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,6 +35,7 @@ export default function useSetting() {
         setUserProfile(profileData);
       }
     } catch (error) {
+      console.error("Error fetching user profile:", error);
       setError("Không thể tải thông tin profile. Hiển thị thông tin cơ bản.");
     } finally {
       setLoading(false);
@@ -63,6 +77,35 @@ export default function useSetting() {
     }
   };
 
+  const handleCustomerMenuPress = (itemId: string) => {
+    switch (itemId) {
+      case "booking-history":
+        router.push("/stadium-booking/booking-history");
+        break;
+      case "event-history":
+        Alert.alert("Thông báo", "Tính năng lịch sử sự kiện sẽ được cập nhật sớm.");
+        break;
+      case "promotions":
+        Alert.alert("Thông báo", "Tính năng ưu đãi sẽ được cập nhật sớm.");
+        break;
+      case "account-management":
+        Alert.alert("Thông báo", "Tính năng quản lý tài khoản sẽ được cập nhật sớm.");
+        break;
+      case "terms":
+        Alert.alert("Thông báo", "Tính năng điều khoản sẽ được cập nhật sớm.");
+        break;
+      case "about":
+        Alert.alert("Về chúng tôi", "SportNow - Ứng dụng đặt sân thể thao\nPhiên bản: 1.0.0");
+        break;
+      case "delete-account":
+        handleDeleteAccount();
+        break;
+      case "logout":
+        handleLogout();
+        break;
+    }
+  };
+
   const handleShareApp = () => {
     Alert.alert("Chia sẻ ứng dụng", "Tính năng chia sẻ sẽ được triển khai sớm!");
   };
@@ -95,6 +138,7 @@ export default function useSetting() {
             await logout();
             router.replace("/(auth)/login");
           } catch (error) {
+            console.error("Logout error:", error);
             Alert.alert("Lỗi", "Không thể đăng xuất. Vui lòng thử lại.");
           }
         },
@@ -129,6 +173,7 @@ export default function useSetting() {
     error,
     isOwner,
     handleOwnerMenuPress,
+    handleCustomerMenuPress,
     handleShareApp,
     handleDeleteAccount,
     handleLogout,

@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import {
@@ -11,7 +12,12 @@ import ProfileHeader from "../../components/ProfileHeader";
 import SettingsMenuItem from "../../components/SettingsMenuItem";
 import SettingsSection from "../../components/SettingsSection";
 import useSetting from "../../hooks/useSetting";
-import { OWNER_APP_ITEMS, OWNER_MAIN_ITEMS } from "../../types/settings";
+import {
+  CUSTOMER_APP_ITEMS,
+  CUSTOMER_MAIN_ITEMS,
+  OWNER_APP_ITEMS,
+  OWNER_MAIN_ITEMS,
+} from "../../types/settings";
 
 export default function Setting() {
   const {
@@ -21,6 +27,7 @@ export default function Setting() {
     error,
     isOwner,
     handleOwnerMenuPress,
+    handleCustomerMenuPress,
     getUserDisplayName,
     getUserSubtitle,
   } = useSetting();
@@ -40,50 +47,125 @@ export default function Setting() {
     );
   }
 
-  return (
-    <>
-      <StatusBar style="dark" backgroundColor="#F9FAFB" />
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <ScrollView>
+  // Owner Settings UI
+  if (isOwner) {
+    return (
+      <>
+        <StatusBar style="dark" backgroundColor="#F9FAFB" />
+        <SafeAreaView className="flex-1 bg-gray-50">
+          {/* Profile Header */}
           <ProfileHeader
             name={getUserDisplayName()}
             subtitle={getUserSubtitle()}
             avatarUrl={userProfile?.avatar?.url}
+            onPress={() => {
+              router.push("/profile/profile");
+            }}
           />
-          <View style={{ marginHorizontal: 16, marginTop: 16 }}>
-            <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8 }}>
-              Tính năng chính
-            </Text>
-            <SettingsSection>
+
+          {/* Error message if profile fetch failed */}
+          {error && (
+            <View className="bg-red-50 mx-4 mt-4 p-3 rounded-lg border border-red-200">
+              <Text className="text-red-700 text-sm text-center">{error}</Text>
+            </View>
+          )}
+
+          <ScrollView
+            className="flex-1 px-4 pt-4"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 100 }}
+          >
+            {/* Green Section - Owner Main Features */}
+            <SettingsSection backgroundColor="#E8F5E8" marginBottom={16}>
               {OWNER_MAIN_ITEMS.map((item) => (
                 <SettingsMenuItem
                   key={item.id}
                   title={item.title}
                   icon={item.icon}
-                  iconColor={item.iconColor}
-                  isDestructive={item.isDestructive}
+                  iconColor="#5A983B"
+                  variant="customer"
                   onPress={() => handleOwnerMenuPress(item)}
                 />
               ))}
             </SettingsSection>
-            <Text
-              style={{ fontWeight: "bold", fontSize: 16, marginVertical: 16 }}
-            >
-              Ứng dụng
-            </Text>
-            <SettingsSection>
+
+            {/* White Section - App Features */}
+            <SettingsSection backgroundColor="white" marginBottom={16}>
               {OWNER_APP_ITEMS.map((item) => (
                 <SettingsMenuItem
                   key={item.id}
                   title={item.title}
                   icon={item.icon}
-                  iconColor={item.iconColor}
+                  iconColor={item.isDestructive ? "#EF4444" : "#6B7280"}
+                  variant="customer"
                   isDestructive={item.isDestructive}
                   onPress={() => handleOwnerMenuPress(item)}
+                  showArrow={item.id !== "logout"}
                 />
               ))}
             </SettingsSection>
+          </ScrollView>
+        </SafeAreaView>
+      </>
+    );
+  }
+
+  // Customer Settings UI (Original Design)
+  return (
+    <>
+      <StatusBar style="dark" backgroundColor="#F9FAFB" />
+      <SafeAreaView className="flex-1 bg-gray-50">
+        {/* Profile Header */}
+        <ProfileHeader
+          name={getUserDisplayName()}
+          subtitle={getUserSubtitle()}
+          avatarUrl={userProfile?.avatar?.url}
+          onPress={() => {
+            router.push("/profile/profile");
+          }}
+        />
+
+        {/* Error message if profile fetch failed */}
+        {error && (
+          <View className="bg-red-50 mx-4 mt-4 p-3 rounded-lg border border-red-200">
+            <Text className="text-red-700 text-sm text-center">{error}</Text>
           </View>
+        )}
+
+        <ScrollView
+          className="flex-1 px-4 pt-4"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        >
+          {/* Green Section - User Features */}
+          <SettingsSection backgroundColor="#E8F5E8" marginBottom={16}>
+            {CUSTOMER_MAIN_ITEMS.map((item) => (
+              <SettingsMenuItem
+                key={item.id}
+                title={item.title}
+                icon={item.icon}
+                iconColor={item.iconColor}
+                variant="customer"
+                onPress={() => handleCustomerMenuPress(item.id)}
+              />
+            ))}
+          </SettingsSection>
+
+          {/* White Section - App Features */}
+          <SettingsSection backgroundColor="white" marginBottom={16}>
+            {CUSTOMER_APP_ITEMS.map((item) => (
+              <SettingsMenuItem
+                key={item.id}
+                title={item.title}
+                icon={item.icon}
+                iconColor={item.iconColor}
+                variant="customer"
+                isDestructive={item.isDestructive}
+                onPress={() => handleCustomerMenuPress(item.id)}
+                showArrow={item.id !== "logout"}
+              />
+            ))}
+          </SettingsSection>
         </ScrollView>
       </SafeAreaView>
     </>

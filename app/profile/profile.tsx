@@ -16,25 +16,6 @@ export default function ProfileScreen() {
   const { user } = useAuth();
   const { profile, loading } = useUserProfile();
 
-  // Debug logging to understand the data structure
-  React.useEffect(() => {
-    console.log("🔍 Profile Screen Debug:");
-    console.log("  📱 User from context:", {
-      id: user?.id,
-      phoneNumber: user?.phoneNumber,
-      email: user?.email,
-      fullName: user?.fullName,
-      role: user?.role,
-    });
-    console.log("  👤 Profile from API:", {
-      id: profile?.id,
-      phoneNumber: profile?.phoneNumber,
-      email: profile?.email,
-      fullName: profile?.fullName,
-      role: profile?.role,
-    });
-  }, [user, profile]);
-
   const formatAge = (dateOfBirth?: string) => {
     if (!dateOfBirth) return "Chưa cập nhật";
     const birth = new Date(dateOfBirth);
