@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
   Image,
   Keyboard,
@@ -13,74 +13,11 @@ import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
 // import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { icons } from "../../constants";
-import authService from "../../services/auth";
+import useLogin from "../../hooks/useLogin";
 
 export default function Login() {
-  const [phone, setPhone] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSendOTP = async () => {
-    if (!phone) {
-      setError("Vui lòng nhập số điện thoại");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Format phone number to remove any spaces or special characters
-      let formattedPhone = phone.replace(/\D/g, "");
-
-      // Ensure phone number starts with 0 for Vietnamese format
-      if (!formattedPhone.startsWith("0") && formattedPhone.length >= 9) {
-        formattedPhone = "0" + formattedPhone;
-      }
-
-      console.log("🔄 Login attempt for phone:", formattedPhone);
-      console.log("📱 Original input:", phone);
-      console.log("📱 Formatted phone:", formattedPhone);
-
-      // First check if user exists as CUSTOMER
-      console.log("🔍 Checking if user exists as CUSTOMER...");
-      let user = await authService.checkExistingUser(
-        formattedPhone,
-        "CUSTOMER"
-      );
-
-      console.log("📋 CUSTOMER check result:", user);
-
-      // If not found as CUSTOMER, check as OWNER
-      if (!user) {
-        console.log("🔍 Not found as CUSTOMER, checking as OWNER...");
-        user = await authService.checkExistingUser(formattedPhone, "OWNER");
-        console.log("📋 OWNER check result:", user);
-      }
-
-      if (user) {
-        console.log("✅ User found, proceeding to OTP verification");
-        console.log("👤 User details:", user);
-        // User exists, proceed to OTP verification for login
-        router.push({
-          pathname: "/(auth)/verify-otp",
-          params: { phoneNumber: formattedPhone, isLogin: "true" },
-        });
-      } else {
-        console.log("❌ User not found, redirecting to registration");
-        // User doesn't exist, redirect to registration
-        router.push({
-          pathname: "/(auth)/register-user",
-          params: { phoneNumber: formattedPhone },
-        });
-      }
-    } catch (error) {
-      console.error("❌ Login error:", error);
-      setError(error instanceof Error ? error.message : "Đã xảy ra lỗi");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { phone, setPhone, isLoading, error, handleSendOTP, setError } =
+    useLogin();
 
   const handleGoogleLoginError = (errorMessage: string) => {
     setError(errorMessage);

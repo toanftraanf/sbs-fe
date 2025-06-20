@@ -33,22 +33,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Debug logging for modal props
-  console.log("🔍 ReservationModal props:", {
-    visible,
-    reservationId: reservation?.id,
-    reservationExists: !!reservation,
-    hasOnClose: !!onClose,
-    hasOnStatusChange: !!onStatusChange,
-    userRole: userRole, // Add userRole to debug logging
-  });
-
-  console.log("👤 USER ROLE DEBUG:", {
-    userRole,
-    isOwner: userRole === "OWNER",
-    isCustomer: userRole === "CUSTOMER",
-  });
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -121,33 +105,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
                 );
               }
 
-              console.log(
-                `🔄 Updating reservation ${reservation.id} status to ${newStatus}`
-              );
-
-              // Log complete reservation data for debugging
-              console.log("🐛 Complete reservation object:", {
-                id: reservation.id,
-                userId: reservation.userId,
-                stadiumId: reservation.stadiumId,
-                status: reservation.status,
-                courtNumber: reservation.courtNumber,
-                startTime: reservation.startTime,
-                endTime: reservation.endTime,
-                date: reservation.date,
-                totalPrice: reservation.totalPrice,
-                sport: reservation.sport,
-                courtType: reservation.courtType,
-                user: reservation.user,
-                stadium: reservation.stadium,
-              });
-
               // Call API to update reservation status
               await updateReservationStatus(reservation.id, newStatus);
-
-              console.log(
-                `✅ Successfully updated reservation status to ${newStatus}`
-              );
 
               // Call the parent component's callback to update local state
               if (onStatusChange) {
@@ -182,23 +141,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   };
 
   if (!reservation) {
-    console.log("❌ ReservationModal: reservation is null, returning null");
     return null;
   }
-
-  console.log("✅ ReservationModal: About to render modal");
-
-  // Debug logging
-  console.log("🐛 Modal reservation data:", {
-    totalPrice: reservation.totalPrice,
-    totalPriceType: typeof reservation.totalPrice,
-    date: reservation.date,
-    createdAt: reservation.createdAt,
-    courtNumber: reservation.courtNumber,
-    stadium: reservation.stadium,
-  });
-
-  console.log("🎭 ReservationModal: Rendering Modal with visible =", visible);
 
   return (
     <Modal

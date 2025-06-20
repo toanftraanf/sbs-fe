@@ -19,6 +19,8 @@ export interface User {
   dob?: string;
   sex?: "MALE" | "FEMALE" | "OTHER";
   address?: string;
+  latitude?: number;
+  longitude?: number;
   userType?: "PLAYER" | "COACH";
   level?: string;
   status?: string;
@@ -39,6 +41,8 @@ export interface UpdateUserInput {
   dob?: string;
   sex?: "MALE" | "FEMALE" | "OTHER";
   address?: string;
+  latitude?: number;
+  longitude?: number;
   userType?: "PLAYER" | "COACH";
   level?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "PRO";
 }

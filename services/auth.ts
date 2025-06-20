@@ -290,6 +290,8 @@ class AuthService {
     dob?: string;
     sex?: "MALE" | "FEMALE" | "OTHER";
     address?: string;
+    latitude?: number;
+    longitude?: number;
     userType?: "PLAYER" | "COACH";
     level?: string;
   }): Promise<any> {
@@ -301,6 +303,8 @@ class AuthService {
         dob: input.dob,
         sex: input.sex,
         address: input.address,
+        latitude: input.latitude,
+        longitude: input.longitude,
         userType: input.userType,
         level: input.level,
       };
@@ -330,6 +334,8 @@ class AuthService {
     dob: string;
     sex: "MALE" | "FEMALE" | "OTHER";
     address: string;
+    latitude: number;
+    longitude: number;
     userType: "PLAYER" | "COACH";
     level: string;
     sportIds: number[];
@@ -342,6 +348,8 @@ class AuthService {
         dob: userProfileData.dob,
         sex: userProfileData.sex,
         address: userProfileData.address,
+        latitude: userProfileData.latitude,
+        longitude: userProfileData.longitude,
         userType: userProfileData.userType,
         level: userProfileData.level,
       });

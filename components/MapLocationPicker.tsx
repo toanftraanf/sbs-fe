@@ -46,8 +46,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   );
   const [locationPermission, setLocationPermission] = useState<boolean>(false);
 
-  const GOONG_API_KEY =
-    env.GOONG_API_KEY || "wnicbAmnNkoaPYzlDmMapdMKRwaRu8P2MBckZVEm";
+  const GOONG_API_KEY = env.GOONG_API_KEY;
 
   console.log(
     "🗺️ MapLocationPicker - API Key:",
