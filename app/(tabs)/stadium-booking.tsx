@@ -60,7 +60,7 @@ export default function StadiumBooking() {
         <Marker
           key={stadium.id}
           coordinate={{ latitude: 0, longitude: 0 }}
-          title={stadium.name + " (Invalid coordinate)"}
+          title={`${stadium.name} (Invalid coordinate)`}
           pinColor="red"
         >
           <Callout>

@@ -1,5 +1,6 @@
 // components/AppHeader.tsx
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import {
   Platform,
@@ -16,8 +17,9 @@ import {
 } from "react-native-safe-area-context";
 
 export interface AppHeaderProps {
-  title: string;
+  title?: string;
   subtitle?: string;
+  showBack?: boolean;
   showSearch?: boolean;
   searchValue?: string;
   searchPlaceholder?: string;
@@ -31,6 +33,7 @@ export interface AppHeaderProps {
 export default function AppHeader({
   title,
   subtitle,
+  showBack = false,
   showSearch = false,
   searchValue,
   searchPlaceholder = "…Tìm kiếm",
@@ -56,40 +59,75 @@ export default function AppHeader({
       <View style={styles.inner}>
         {/* 1) tiêu đề + 3 icon */}
         <View style={styles.row}>
-          <View style={styles.titleSection}>
-            <Text numberOfLines={1} style={styles.title}>
-              {title}
-            </Text>
-            {subtitle && (
-              <Text numberOfLines={1} style={styles.subtitle}>
-                {subtitle}
+          {/* Back button */}
+          {showBack && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons
+                name="arrow-back-circle-outline"
+                size={32}
+                color="#5A983B"
+              />
+            </TouchableOpacity>
+          )}
+
+          {title && (
+            <View
+              style={[
+                styles.titleSection,
+                showBack ||
+                (!onDocPress && !onNotificationPress && !onProfilePress)
+                  ? styles.titleSectionCentered
+                  : styles.titleSectionDefault,
+              ]}
+            >
+              <Text numberOfLines={1} style={styles.title}>
+                {title}
               </Text>
-            )}
-          </View>
-          <View style={styles.iconGroup}>
-            {onDocPress && (
-              <TouchableOpacity onPress={onDocPress} style={styles.iconBtn}>
-                <Ionicons name="document-text-outline" size={22} color="#222" />
-              </TouchableOpacity>
-            )}
-            {onNotificationPress && (
-              <TouchableOpacity
-                onPress={onNotificationPress}
-                style={styles.iconBtn}
-              >
-                <Ionicons name="notifications-outline" size={22} color="#222" />
-              </TouchableOpacity>
-            )}
-            {onProfilePress && (
-              <TouchableOpacity onPress={onProfilePress}>
-                <Ionicons
-                  name="person-circle-outline"
-                  size={32}
-                  color="#5A983B"
-                />
-              </TouchableOpacity>
-            )}
-          </View>
+              {subtitle && (
+                <Text numberOfLines={1} style={styles.subtitle}>
+                  {subtitle}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {!showBack && (
+            <View style={styles.iconGroup}>
+              {onDocPress && (
+                <TouchableOpacity onPress={onDocPress} style={styles.iconBtn}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={22}
+                    color="#222"
+                  />
+                </TouchableOpacity>
+              )}
+              {onNotificationPress && (
+                <TouchableOpacity
+                  onPress={onNotificationPress}
+                  style={styles.iconBtn}
+                >
+                  <Ionicons
+                    name="notifications-outline"
+                    size={22}
+                    color="#222"
+                  />
+                </TouchableOpacity>
+              )}
+              {onProfilePress && (
+                <TouchableOpacity onPress={onProfilePress}>
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={32}
+                    color="#5A983B"
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
         {/* 2) search + filter (tuỳ chọn) */}
@@ -136,6 +174,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     height: 44,
+    position: "relative",
+  },
+  backButton: {
+    position: "absolute",
+    left: 0,
+    zIndex: 1,
   },
   title: {
     fontFamily: "Inter_700Bold",
@@ -192,6 +236,15 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     flexDirection: "column",
+  },
+  titleSectionDefault: {
     maxWidth: "70%",
+  },
+  titleSectionCentered: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

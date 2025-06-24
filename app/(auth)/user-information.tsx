@@ -4,9 +4,9 @@ import DatePickerField from "@/components/DatePickerField";
 import GenderSelector from "@/components/GenderSelector";
 import MapLocationPicker from "@/components/MapLocationPicker";
 import PickerField from "@/components/PickerField";
-import RoleToggle from "@/components/RoleToggle";
 import SportNowHeader from "@/components/SportNowHeader";
 import SportsSelector from "@/components/SportsSelector";
+import Toggle from "@/components/Toggle";
 import { useUserInformation } from "@/hooks/useUserInformation";
 import React from "react";
 import {
@@ -184,7 +184,15 @@ export default function UserInformation() {
             )}
           </View>
 
-          <RoleToggle label="Tư cách" value={role} onChange={setRole} />
+          <Toggle
+            label="Tư cách"
+            value={role}
+            onChange={(value: string) => setRole(value as "player" | "coach")}
+            options={[
+              { label: "Người chơi", value: "player" },
+              { label: "Huấn luyện viên", value: "coach" },
+            ]}
+          />
 
           <View className="mb-4">
             <PickerField

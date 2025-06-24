@@ -125,8 +125,9 @@ const ReservationItem: React.FC<ReservationItemProps> = ({
         </View>
 
         <Text className="text-sm text-gray-600 mb-1">
-          {reservation.sport || "Thể thao"}: Sân{" "}
-          {reservation.courtNumber || "N/A"}
+          {`${reservation.sport || "Thể thao"}: Sân ${
+            reservation.courtNumber || "N/A"
+          }`}
         </Text>
 
         <Text className="text-sm text-gray-700 font-medium mb-1">

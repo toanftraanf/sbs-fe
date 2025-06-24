@@ -8,6 +8,7 @@ const StadiumCard: React.FC<StadiumCardProps> = ({
   index,
   scrollX,
   onPress,
+  buttonText = "Đặt lịch",
 }) => {
   const inputRange = [
     (index - 1) * (220 + 16),
@@ -60,7 +61,7 @@ const StadiumCard: React.FC<StadiumCardProps> = ({
           className="bg-[#E6F4EA] rounded-lg py-2 items-center flex-shrink-0 min-h-[36px]"
           onPress={onPress}
         >
-          <Text className="text-[#7CB518] font-bold text-sm">Đặt lịch</Text>
+          <Text className="text-[#7CB518] font-bold text-sm">{buttonText}</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>

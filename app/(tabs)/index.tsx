@@ -16,6 +16,7 @@ import GroupedReservationItem from "@/components/GroupedReservationItem";
 import PremiumPackageCard from "@/components/PremiumPackageCard";
 import ReservationModal from "@/components/ReservationModal";
 import { useHomeScreen } from "@/hooks/useHomeScreen";
+import { router } from "expo-router";
 
 export default function UserHomeRedirect() {
   const {
@@ -370,6 +371,26 @@ export default function UserHomeRedirect() {
             <Text className="text-xs text-gray-500">
               Tìm kiếm, ghép đội và kết nối với những người cùng đam mê với bạn
               ngay lúc này.
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Sự kiện */}
+        <TouchableOpacity
+          onPress={() => router.push("/events/create-event")}
+          className="bg-white rounded-xl p-4 mb-3 flex-row items-center shadow-sm border border-[#E6F4EA]"
+        >
+          <Image
+            source={{
+              uri: "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
+            }}
+            className="w-16 h-16 rounded-xl mr-3"
+          />
+          <View className="flex-1">
+            <Text className="font-InterBold mb-1">Sự kiện</Text>
+            <Text className="text-xs text-gray-500">
+              Tham gia các sự kiện và hoạt động của chúng tôi để nâng cao kỹ
+              năng và trải nghiệm.
             </Text>
           </View>
         </TouchableOpacity>

@@ -123,10 +123,9 @@ export default function SportsSelector({
 
       {selectedSports.length > 0 && (
         <Text className="text-sm text-gray-500 mt-2">
-          Đã chọn: {selectedSports.length} môn thể thao
+          {`Đã chọn: ${selectedSports.length} môn thể thao`}
         </Text>
       )}
     </View>
   );
 }
- 

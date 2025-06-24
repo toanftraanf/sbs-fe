@@ -1,3 +1,4 @@
+import { UserRole } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apolloClient } from "../config/apollo";
 import {
@@ -95,7 +96,7 @@ class AuthService {
     }
   }
 
-  public async checkExistingUser(phoneNumber: string, userRole: string): Promise<any> {
+  public async checkExistingUser(phoneNumber: string, userRole: UserRole): Promise<any> {
     try {
       const { data } = await apolloClient.mutate({
         mutation: CHECK_EXISTING_USER,

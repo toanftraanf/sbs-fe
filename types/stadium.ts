@@ -34,6 +34,7 @@ export interface StadiumCardProps {
   index: number;
   scrollX: Animated.Value;
   onPress: () => void;
+  buttonText?: string;
 }
 
 export const CARD_WIDTH = 220;
