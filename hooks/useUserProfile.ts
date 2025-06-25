@@ -58,7 +58,7 @@ export function useUserProfile(): UseUserProfileResult {
     fetchProfile();
   }, [user?.id]);
 
-  const refetch = async () => {
+  const refetch = async () => { 
     await fetchProfile();
   };
 

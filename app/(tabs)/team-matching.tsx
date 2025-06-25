@@ -1,15 +1,22 @@
 // app/team-matching.tsx
 import AppHeader from "@/components/AppHeader";
 import BackgroundDecor from "@/components/BackgroundDecor";
+import EventCard from "@/components/EventCard";
+import SportsSelector from "@/components/SportsSelector";
+import { useAuth } from "@/contexts/AuthContext";
+import eventService, { UserEvent } from "@/services/event";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useRef, useState } from "react";
+import { router } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
   Easing,
+  FlatList,
   Image,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import Swiper from "react-native-deck-swiper";
@@ -26,27 +33,127 @@ type Friend = {
   location: string;
   schedule: string;
 };
+
 const mockData: Friend[] = [
-  { id: 1, name: "Văn B", age: 24, avatarUrl: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. Long Thạnh Mỹ, Thủ Đức, TP. HCM", schedule: "T2, T4, T6 từ 06:30–09:00 và 15:00–18:00" },
-  { id: 2, name: "Huy C", age: 30, avatarUrl: "https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. Bến Nghé, Quận 1, TP. HCM", schedule: "T2, T4 từ 07:00–10:00 và 17:00–19:00" },
-  { id: 3, name: "Lan D", age: 28, avatarUrl: "https://images.unsplash.com/photo-1531891437562-331a99a7fd47?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. Phú Mỹ, Quận 7, TP. HCM", schedule: "T3, T5 từ 08:00–11:00 và 14:00–16:00" },
-  { id: 4, name: "Minh E", age: 26, avatarUrl: "https://images.unsplash.com/photo-1544725176-7c40e5a2c314?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. 15, Quận 10, TP. HCM", schedule: "T2, T6 từ 06:30–09:30 và 16:00–18:00" },
-  { id: 5, name: "Trang F", age: 25, avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. Tân Thuận Đông, Quận 7, TP. HCM", schedule: "T4, T7 từ 07:30–10:30 và 15:00–17:30" },
-  { id: 6, name: "Quang G", age: 29, avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. 12, Quận Gò Vấp, TP. HCM", schedule: "T3, T5, CN từ 06:00–09:00" },
-  { id: 7, name: "Thảo H", age: 23, avatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. 6, Quận 3, TP. HCM", schedule: "T2–T6 từ 18:00–20:00" },
-  { id: 8, name: "Nam I", age: 27, avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. 2, Quận Bình Thạnh, TP. HCM", schedule: "T4, T7 từ 07:00–10:00" },
-  { id: 9, name: "Vy K", age: 22, avatarUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. 9, Quận Phú Nhuận, TP. HCM", schedule: "T3, T6 từ 08:00–11:00 và 16:00–18:00" },
-  { id: 10, name: "Long L", age: 31, avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. 5, Quận 8, TP. HCM", schedule: "T2, T5 từ 06:30–09:30" },
-  { id: 11, name: "Nga M", age: 24, avatarUrl: "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60", location: "P. 4, Quận 4, TP. HCM", schedule: "T4, T7 từ 17:00–20:00 và CN từ 08:00–11:00" },
+  {
+    id: 1,
+    name: "Văn B",
+    age: 24,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. Long Thạnh Mỹ, Thủ Đức, TP. HCM",
+    schedule: "T2, T4, T6 từ 06:30–09:00 và 15:00–18:00",
+  },
+  {
+    id: 2,
+    name: "Huy C",
+    age: 30,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. Bến Nghé, Quận 1, TP. HCM",
+    schedule: "T2, T4 từ 07:00–10:00 và 17:00–19:00",
+  },
+  {
+    id: 3,
+    name: "Lan D",
+    age: 28,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1531891437562-331a99a7fd47?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. Phú Mỹ, Quận 7, TP. HCM",
+    schedule: "T3, T5 từ 08:00–11:00 và 14:00–16:00",
+  },
+  {
+    id: 4,
+    name: "Minh E",
+    age: 26,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1544725176-7c40e5a2c314?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. 15, Quận 10, TP. HCM",
+    schedule: "T2, T6 từ 06:30–09:30 và 16:00–18:00",
+  },
+  {
+    id: 5,
+    name: "Trang F",
+    age: 25,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. Tân Thuận Đông, Quận 7, TP. HCM",
+    schedule: "T4, T7 từ 07:30–10:30 và 15:00–17:30",
+  },
+  {
+    id: 6,
+    name: "Quang G",
+    age: 29,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. 12, Quận Gò Vấp, TP. HCM",
+    schedule: "T3, T5, CN từ 06:00–09:00",
+  },
+  {
+    id: 7,
+    name: "Thảo H",
+    age: 23,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. 6, Quận 3, TP. HCM",
+    schedule: "T2–T6 từ 18:00–20:00",
+  },
+  {
+    id: 8,
+    name: "Nam I",
+    age: 27,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. 2, Quận Bình Thạnh, TP. HCM",
+    schedule: "T4, T7 từ 07:00–10:00",
+  },
+  {
+    id: 9,
+    name: "Vy K",
+    age: 22,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. 9, Quận Phú Nhuận, TP. HCM",
+    schedule: "T3, T6 từ 08:00–11:00 và 16:00–18:00",
+  },
+  {
+    id: 10,
+    name: "Long L",
+    age: 31,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. 5, Quận 8, TP. HCM",
+    schedule: "T2, T5 từ 06:30–09:30",
+  },
+  {
+    id: 11,
+    name: "Nga M",
+    age: 24,
+    avatarUrl:
+      "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=60",
+    location: "P. 4, Quận 4, TP. HCM",
+    schedule: "T4, T7 từ 17:00–20:00 và CN từ 08:00–11:00",
+  },
 ];
 
 export default function TeamMatchingScreen() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<"find-friends" | "plans">(
+    "find-friends"
+  );
   const [searchQuery, setSearchQuery] = useState("");
-  const cards = mockData.filter(c =>
+  const [allEvents, setAllEvents] = useState<UserEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [selectedSportFilters, setSelectedSportFilters] = useState<number[]>(
+    []
+  );
+
+  const cards = mockData.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const swiperRef = useRef<Swiper<Friend>>(null);
 
+  // Animation for friend matching
   const dragX = useRef(new Animated.Value(0)).current;
   const heartOpacity = dragX.interpolate({
     inputRange: [0, 80, 150],
@@ -69,6 +176,40 @@ export default function TeamMatchingScreen() {
     extrapolate: "clamp",
   });
 
+  // Load all events when plans tab is active
+  useEffect(() => {
+    if (activeTab === "plans") {
+      loadAllEvents();
+    }
+  }, [activeTab]);
+
+  const loadAllEvents = async () => {
+    setLoadingEvents(true);
+    try {
+      const events = await eventService.getAllEvents();
+      setAllEvents(events);
+    } catch (error) {
+      console.error("Error loading events:", error);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  const renderEventCard = ({ item }: { item: UserEvent }) => (
+    <EventCard
+      event={item}
+      onPress={() => {
+        // Navigate to event detail screen
+        router.push({
+          pathname: "/events/event-detail",
+          params: {
+            eventData: JSON.stringify(item),
+          },
+        });
+      }}
+    />
+  );
+
   const handleSwiping = (x: number) => dragX.setValue(x);
   const handleSwiped = () => {
     Animated.timing(dragX, {
@@ -81,7 +222,7 @@ export default function TeamMatchingScreen() {
   const onSwipedLeft = (i: number) => console.log("❌", cards[i]?.name);
   const onSwipedRight = (i: number) => console.log("❤️", cards[i]?.name);
 
-  const renderCard = (card: Friend | null) => {
+  const renderFriendCard = (card: Friend | null) => {
     if (!card) return null;
     return (
       <View style={styles.card}>
@@ -106,21 +247,80 @@ export default function TeamMatchingScreen() {
           <View style={styles.mainAction}>
             <Ionicons name="hand-left-outline" size={24} color="#fff" />
           </View>
-          <Ionicons name="chatbubble-ellipses-outline" size={28} color="#4CAF50" />
+          <Ionicons
+            name="chatbubble-ellipses-outline"
+            size={28}
+            color="#4CAF50"
+          />
           <Ionicons name="chevron-forward-outline" size={28} color="#4CAF50" />
         </View>
       </View>
     );
   };
 
+  // Icon mapping for different sports (copied from SportsSelector)
+  const getSportIcon = (sportName: string): keyof typeof Ionicons.glyphMap => {
+    const name = sportName.toLowerCase();
+    if (name.includes("cầu lông") || name.includes("badminton"))
+      return "fitness-outline";
+    if (name.includes("quần vợt") || name.includes("tennis"))
+      return "tennisball-outline";
+    if (name.includes("bóng bàn") || name.includes("ping pong"))
+      return "library-outline";
+    if (name.includes("pickleball")) return "american-football-outline";
+    return "fitness-outline"; // default icon
+  };
+
+  const formatEventDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const formatEventTime = (timeString: string) => {
+    return timeString.substring(0, 5); // Format HH:MM
+  };
+
+  const getSportNames = (sports: { id: number; name: string }[]) => {
+    return sports.map((sport) => sport.name).join(", ");
+  };
+
+  const renderCreateEventButton = () => (
+    <View style={styles.createEventSection}>
+      <TouchableOpacity
+        style={styles.createEventButton}
+        onPress={() => router.push("/events/create-event")}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="add" size={20} color="#5A983B" />
+        <Text style={styles.createEventText}>Tạo sự kiện</Text>
+      </TouchableOpacity>
+
+      <View style={styles.filterSortContainer}>
+        <TouchableOpacity style={styles.filterButton} activeOpacity={0.8}>
+          <Ionicons name="options-outline" size={16} color="#666" />
+          <Text style={styles.filterButtonText}>Bộ lọc</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.filterButton} activeOpacity={0.8}>
+          <Ionicons name="swap-vertical-outline" size={16} color="#666" />
+          <Text style={styles.filterButtonText}>Sắp xếp</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-       <BackgroundDecor />
+      <BackgroundDecor />
 
       <AppHeader
         title="Nguyễn Văn A"
         subtitle="Quận 9, TP. HCM"
-        showSearch
+        showSearch={activeTab === "find-friends"}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         onFilterPress={() => {}}
@@ -129,42 +329,103 @@ export default function TeamMatchingScreen() {
         onProfilePress={() => {}}
       />
 
-      <View style={styles.swiperWrapper}>
-        <Swiper
-          ref={swiperRef}
-          cards={cards}
-          renderCard={renderCard}
-          onSwiping={handleSwiping}
-          onSwiped={handleSwiped}
-          onSwipedLeft={onSwipedLeft}
-          onSwipedRight={onSwipedRight}
-          cardIndex={0}
-          stackSize={3}
-          stackSeparation={12}
-          verticalSwipe={false}
-          backgroundColor="transparent"
-        />
-
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.overlayIcon,
-            { opacity: heartOpacity, transform: [{ scale: heartScale }] },
-          ]}
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "find-friends" && styles.activeTab]}
+          onPress={() => setActiveTab("find-friends")}
         >
-          <Ionicons name="heart-outline" size={120} color="#5A983B" />
-        </Animated.View>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "find-friends" && styles.activeTabText,
+            ]}
+          >
+            Tìm bạn
+          </Text>
+        </TouchableOpacity>
 
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.overlayIcon,
-            { opacity: nopeOpacity, transform: [{ scale: nopeScale }] },
-          ]}
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "plans" && styles.activeTab]}
+          onPress={() => setActiveTab("plans")}
         >
-          <Ionicons name="close-outline" size={120} color="red" />
-        </Animated.View>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "plans" && styles.activeTabText,
+            ]}
+          >
+            Kế hoạch
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Content */}
+      {activeTab === "find-friends" ? (
+        <View style={styles.swiperWrapper}>
+          <Swiper
+            ref={swiperRef}
+            cards={cards}
+            renderCard={renderFriendCard}
+            onSwiping={handleSwiping}
+            onSwiped={handleSwiped}
+            onSwipedLeft={onSwipedLeft}
+            onSwipedRight={onSwipedRight}
+            cardIndex={0}
+            stackSize={3}
+            stackSeparation={12}
+            verticalSwipe={false}
+            backgroundColor="transparent"
+          />
+
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.overlayIcon,
+              { opacity: heartOpacity, transform: [{ scale: heartScale }] },
+            ]}
+          >
+            <Ionicons name="heart-outline" size={120} color="#5A983B" />
+          </Animated.View>
+
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.overlayIcon,
+              { opacity: nopeOpacity, transform: [{ scale: nopeScale }] },
+            ]}
+          >
+            <Ionicons name="close-outline" size={120} color="red" />
+          </Animated.View>
+        </View>
+      ) : (
+        <View style={styles.eventsContainer}>
+          <View style={styles.filterAndCreateContainer}>
+            <SportsSelector
+              label=""
+              selectedSports={selectedSportFilters}
+              onSportsChange={setSelectedSportFilters}
+              containerClassName="mb-4"
+            />
+            {renderCreateEventButton()}
+          </View>
+          <FlatList
+            data={allEvents}
+            renderItem={renderEventCard}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.eventsList}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Ionicons name="calendar-outline" size={64} color="#ccc" />
+                <Text style={styles.emptyStateText}>
+                  {loadingEvents ? "Đang tải..." : "Chưa có sự kiện nào"}
+                </Text>
+              </View>
+            }
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -172,20 +433,42 @@ export default function TeamMatchingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E6F4EA",
+    backgroundColor: "#F5F5F5",
   },
-  decorContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+
+  // Tab styles
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 12,
+    padding: 4,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
   },
-  decorIcon: {
-    position: "absolute",
-    color: "#5A983B",
-    opacity: 0.12,
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 8,
   },
+  activeTab: {
+    backgroundColor: "#5A983B",
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#666",
+  },
+  activeTabText: {
+    color: "#fff",
+  },
+
+  // Friend matching styles (existing)
   swiperWrapper: {
     flex: 1,
     alignItems: "center",
@@ -279,5 +562,65 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     zIndex: 999,
     elevation: 999,
+  },
+
+  // Events styles
+  eventsContainer: {
+    flex: 1,
+    marginTop: 8,
+  },
+  filterAndCreateContainer: {
+    backgroundColor: "#fff",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  eventsList: {
+    padding: 16,
+  },
+  createEventSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 12,
+  },
+  createEventButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createEventText: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#5A983B",
+  },
+  filterSortContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 6,
+  },
+  filterButtonText: {
+    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#666",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 64,
+  },
+  emptyStateText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#999",
+    textAlign: "center",
   },
 });
