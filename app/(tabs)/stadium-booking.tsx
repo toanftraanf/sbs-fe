@@ -233,7 +233,7 @@ export default function StadiumBooking() {
         const parts = addressToSearch.split(" ");
         const broaderSearchTerms = [
           "Hồ Chí Minh", // City only
-          "Thủ Đức Hồ chí Minh", // Ward + City
+          "Thủ Đức, Hồ chí Minh", // Ward + City
           parts.slice(-2).join(" "), // Last 2 parts
         ];
 
