@@ -290,7 +290,14 @@ export default function BookingDetail() {
           if (r === rowIdx && c === colIdx) {
             if (status === "available") return "selected";
             if (status === "selected") return "available";
-            // Don't change locked slots
+            // Don't change locked slots - show alert if user tries to select a locked slot
+            if (status === "lock") {
+              Alert.alert(
+                "Không thể chọn",
+                "Khung giờ này đã được đặt. Vui lòng chọn khung giờ khác."
+              );
+              return status;
+            }
           }
           return status;
         })
@@ -418,12 +425,119 @@ export default function BookingDetail() {
       return;
     }
 
-    // For now, we'll assume userId = 1 (you should get this from user context/auth)
     const userId = user?.id;
     const selectedDate = dates.find((d) => d.key === selectedDateKey);
 
     if (!selectedDate) {
       Alert.alert("Lỗi", "Vui lòng chọn ngày đặt sân.");
+      return;
+    }
+
+    setBookingLoading(true);
+
+    try {
+      // Get fresh reservation data directly from server to check for conflicts
+      console.log("🔍 Checking for booking conflicts...");
+      const { data: freshReservationData } = await getStadiumReservations({
+        variables: {
+          stadiumId: parseInt(stadiumId as string),
+          date: selectedDateKey,
+        },
+        fetchPolicy: "network-only", // Force fresh data from server
+      });
+
+      // Check for conflicts by comparing selected slots with fresh server data
+      const selectedSlots = getSelectedSlots();
+      const conflicts: string[] = [];
+
+      if (freshReservationData?.stadiumReservations) {
+        console.log("🔍 Checking conflicts against fresh server data...");
+        console.log("📊 Selected slots to check:", selectedSlots.length);
+        console.log(
+          "📊 Fresh reservations from server:",
+          freshReservationData.stadiumReservations.length
+        );
+
+        for (const selectedSlot of selectedSlots) {
+          // Check if this selected slot conflicts with any existing reservation
+          const hasConflict = freshReservationData.stadiumReservations.some(
+            (reservation: any) => {
+              const {
+                courtNumber,
+                startTime,
+                endTime,
+                status: reservationStatus,
+              } = reservation;
+
+              // Skip cancelled reservations
+              if (reservationStatus === "CANCELLED") {
+                return false;
+              }
+
+              // Check if the court matches
+              if (courtNumber !== selectedSlot.courtNumber) {
+                return false;
+              }
+
+              // Check if there's a time overlap
+              // Selected slot: selectedSlot.startTime to selectedSlot.endTime
+              // Existing reservation: startTime to endTime
+              const selectedStart = selectedSlot.startTime;
+              const selectedEnd = selectedSlot.endTime;
+
+              // Check for overlap: reservation starts before selected slot ends AND reservation ends after selected slot starts
+              const overlaps =
+                startTime < selectedEnd && endTime > selectedStart;
+
+              if (overlaps) {
+                console.log(`❌ CONFLICT DETECTED:`, {
+                  selectedSlot: `Court ${selectedSlot.courtNumber}: ${selectedStart}-${selectedEnd}`,
+                  existingReservation: `Court ${courtNumber}: ${startTime}-${endTime}`,
+                  reservationStatus,
+                });
+                return true;
+              }
+
+              return false;
+            }
+          );
+
+          if (hasConflict) {
+            conflicts.push(
+              `Sân ${selectedSlot.courtNumber}: ${selectedSlot.startTime}-${selectedSlot.endTime}`
+            );
+          }
+        }
+      }
+
+      if (conflicts.length > 0) {
+        setBookingLoading(false);
+        Alert.alert(
+          "Không thành công",
+          `Các khung giờ sau đã được đặt bởi người khác:\n\n${conflicts.join(
+            "\n"
+          )}\n\nVui lòng chọn lại khung giờ khác.`,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Refresh the UI to show the updated slot status
+                fetchReservationsAndUpdateSlots(true);
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      console.log("✅ No conflicts found, proceeding with reservation...");
+    } catch (error) {
+      console.error("Error checking for conflicts:", error);
+      setBookingLoading(false);
+      Alert.alert(
+        "Lỗi",
+        "Không thể kiểm tra trạng thái đặt sân. Vui lòng thử lại."
+      );
       return;
     }
 
@@ -439,8 +553,6 @@ export default function BookingDetail() {
         timeSlots: reservation.timeSlots,
       });
     });
-
-    setBookingLoading(true);
 
     try {
       // Create reservations for each grouped reservation (consecutive slots = 1 reservation)

@@ -95,7 +95,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         console.log(
           "⚠️ AuthGuard: Profile incomplete, redirecting to user-information"
         );
-        router.replace("/(auth)/user-information-step1");
+        router.replace("/(auth)/user-information");
         return;
       }
 
@@ -106,7 +106,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       console.log(
         "⚠️ AuthGuard: Profile check failed, redirecting to user-information"
       );
-      router.replace("/(auth)/user-information-step1");
+      router.replace("/(auth)/user-information");
     } finally {
       checkingRef.current = false;
       setIsCheckingProfile(false);

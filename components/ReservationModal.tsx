@@ -1,6 +1,7 @@
 import { updateReservationStatus } from "@/services/reservation";
 import { Reservation } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -31,22 +32,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   userRole = "CUSTOMER", // Default to customer if not specified
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
-
-  // Debug logging for modal props
-  console.log("🔍 ReservationModal props:", {
-    visible,
-    reservationId: reservation?.id,
-    reservationExists: !!reservation,
-    hasOnClose: !!onClose,
-    hasOnStatusChange: !!onStatusChange,
-    userRole: userRole, // Add userRole to debug logging
-  });
-
-  console.log("👤 USER ROLE DEBUG:", {
-    userRole,
-    isOwner: userRole === "OWNER",
-    isCustomer: userRole === "CUSTOMER",
-  });
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -120,33 +105,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
                 );
               }
 
-              console.log(
-                `🔄 Updating reservation ${reservation.id} status to ${newStatus}`
-              );
-
-              // Log complete reservation data for debugging
-              console.log("🐛 Complete reservation object:", {
-                id: reservation.id,
-                userId: reservation.userId,
-                stadiumId: reservation.stadiumId,
-                status: reservation.status,
-                courtNumber: reservation.courtNumber,
-                startTime: reservation.startTime,
-                endTime: reservation.endTime,
-                date: reservation.date,
-                totalPrice: reservation.totalPrice,
-                sport: reservation.sport,
-                courtType: reservation.courtType,
-                user: reservation.user,
-                stadium: reservation.stadium,
-              });
-
               // Call API to update reservation status
               await updateReservationStatus(reservation.id, newStatus);
-
-              console.log(
-                `✅ Successfully updated reservation status to ${newStatus}`
-              );
 
               // Call the parent component's callback to update local state
               if (onStatusChange) {
@@ -181,23 +141,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   };
 
   if (!reservation) {
-    console.log("❌ ReservationModal: reservation is null, returning null");
     return null;
   }
-
-  console.log("✅ ReservationModal: About to render modal");
-
-  // Debug logging
-  console.log("🐛 Modal reservation data:", {
-    totalPrice: reservation.totalPrice,
-    totalPriceType: typeof reservation.totalPrice,
-    date: reservation.date,
-    createdAt: reservation.createdAt,
-    courtNumber: reservation.courtNumber,
-    stadium: reservation.stadium,
-  });
-
-  console.log("🎭 ReservationModal: Rendering Modal with visible =", visible);
 
   return (
     <Modal
@@ -569,8 +514,40 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
                 <Text className="text-lg font-bold text-green-600">
                   Hoàn thành
                 </Text>
+                <Text className="text-sm text-gray-600">
+                  Lịch đặt đã được hoàn thành
+                </Text>
               </View>
             </View>
+
+            {/* Review Button for Customers */}
+            {userRole === "CUSTOMER" && (
+              <TouchableOpacity
+                onPress={() => {
+                  // Navigate to submit review screen
+                  onClose(); // Close the modal first
+                  router.push({
+                    pathname: "/stadium-booking/submit-review",
+                    params: {
+                      reservationId: reservation.id.toString(),
+                      stadiumId: reservation.stadiumId.toString(),
+                      stadiumName: reservation.stadium?.name || "Sân thể thao",
+                      date: reservation.date,
+                      startTime: reservation.startTime,
+                      endTime: reservation.endTime,
+                      courtNumber: reservation.courtNumber.toString(),
+                      sport: reservation.sport || "Thể thao",
+                    },
+                  });
+                }}
+                className="mt-4 bg-primary rounded-lg py-3 px-4 flex-row items-center justify-center"
+              >
+                <Ionicons name="star" size={20} color="white" />
+                <Text className="text-white font-semibold text-base ml-2">
+                  Đánh giá và nhận xét
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>

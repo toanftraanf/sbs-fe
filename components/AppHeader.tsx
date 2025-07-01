@@ -1,20 +1,25 @@
 // components/AppHeader.tsx
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import {
-    Platform,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 export interface AppHeaderProps {
-  title: string;
+  title?: string;
   subtitle?: string;
+  showBack?: boolean;
   showSearch?: boolean;
   searchValue?: string;
   searchPlaceholder?: string;
@@ -28,6 +33,7 @@ export interface AppHeaderProps {
 export default function AppHeader({
   title,
   subtitle,
+  showBack = false,
   showSearch = false,
   searchValue,
   searchPlaceholder = "…Tìm kiếm",
@@ -44,33 +50,84 @@ export default function AppHeader({
   return (
     <View style={styles.bgContainer}>
       {/* chỉ safe‐area inset ở trên */}
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: "#E6F4EA", paddingTop }} />
+      <SafeAreaView
+        edges={["top"]}
+        style={{ backgroundColor: "#E6F4EA", paddingTop }}
+      />
 
       {/* phần có padding horizontal sẽ nằm riêng */}
       <View style={styles.inner}>
         {/* 1) tiêu đề + 3 icon */}
         <View style={styles.row}>
-          <View>
-            <Text style={styles.title}>{title}</Text>
-            {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-          </View>
-          <View style={styles.iconGroup}>
-            {onDocPress && (
-              <TouchableOpacity onPress={onDocPress} style={styles.iconBtn}>
-                <Ionicons name="document-text-outline" size={22} color="#222" />
-              </TouchableOpacity>
-            )}
-            {onNotificationPress && (
-              <TouchableOpacity onPress={onNotificationPress} style={styles.iconBtn}>
-                <Ionicons name="notifications-outline" size={22} color="#222" />
-              </TouchableOpacity>
-            )}
-            {onProfilePress && (
-              <TouchableOpacity onPress={onProfilePress}>
-                <Ionicons name="person-circle-outline" size={32} color="#5A983B" />
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* Back button */}
+          {showBack && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons
+                name="arrow-back-circle-outline"
+                size={32}
+                color="#5A983B"
+              />
+            </TouchableOpacity>
+          )}
+
+          {title && (
+            <View
+              style={[
+                styles.titleSection,
+                showBack ||
+                (!onDocPress && !onNotificationPress && !onProfilePress)
+                  ? styles.titleSectionCentered
+                  : styles.titleSectionDefault,
+              ]}
+            >
+              <Text numberOfLines={1} style={styles.title}>
+                {title}
+              </Text>
+              {subtitle && (
+                <Text numberOfLines={1} style={styles.subtitle}>
+                  {subtitle}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {!showBack && (
+            <View style={styles.iconGroup}>
+              {onDocPress && (
+                <TouchableOpacity onPress={onDocPress} style={styles.iconBtn}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={22}
+                    color="#222"
+                  />
+                </TouchableOpacity>
+              )}
+              {onNotificationPress && (
+                <TouchableOpacity
+                  onPress={onNotificationPress}
+                  style={styles.iconBtn}
+                >
+                  <Ionicons
+                    name="notifications-outline"
+                    size={22}
+                    color="#222"
+                  />
+                </TouchableOpacity>
+              )}
+              {onProfilePress && (
+                <TouchableOpacity onPress={onProfilePress}>
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={32}
+                    color="#5A983B"
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
         {/* 2) search + filter (tuỳ chọn) */}
@@ -87,7 +144,10 @@ export default function AppHeader({
               />
             </View>
             {onFilterPress && (
-              <TouchableOpacity style={styles.filterButton} onPress={onFilterPress}>
+              <TouchableOpacity
+                style={styles.filterButton}
+                onPress={onFilterPress}
+              >
                 <Ionicons name="filter-outline" size={20} color="#b0b0b0" />
               </TouchableOpacity>
             )}
@@ -104,7 +164,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E6F4EA",
   },
   inner: {
-    paddingHorizontal: 12,   // giảm từ 16 xuống 12 cho sát mép hơn
+    paddingHorizontal: 12, // giảm từ 16 xuống 12 cho sát mép hơn
     paddingBottom: 8,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
@@ -114,6 +174,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     height: 44,
+    position: "relative",
+  },
+  backButton: {
+    position: "absolute",
+    left: 0,
+    zIndex: 1,
   },
   title: {
     fontFamily: "Inter_700Bold",
@@ -128,6 +194,7 @@ const styles = StyleSheet.create({
   iconGroup: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 0,
   },
   iconBtn: {
     marginRight: 12,
@@ -166,5 +233,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 4,
     elevation: 2,
+  },
+  titleSection: {
+    flexDirection: "column",
+  },
+  titleSectionDefault: {
+    maxWidth: "70%",
+  },
+  titleSectionCentered: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

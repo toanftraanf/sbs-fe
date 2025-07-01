@@ -23,7 +23,7 @@ export const GOOGLE_AUTH_MOBILE = gql`
 `;
 
 export const CHECK_EXISTING_USER = gql`
-  mutation CheckExistingUser($phoneNumber: String!, $userRole: String!) {
+  mutation CheckExistingUser($phoneNumber: String!, $userRole: UserRole!) {
     checkExistingUser(phoneNumber: $phoneNumber, userRole: $userRole) {
       id
       phoneNumber
@@ -118,10 +118,128 @@ export const UPDATE_USER_MUTATION = gql`
       dob
       sex
       address
+      latitude
+      longitude
       userType
       level
       status
       isVerified
+    }
+  }
+`;
+
+// =============================================================================
+// EVENTS QUERIES & MUTATIONS
+// =============================================================================
+
+export const JOIN_EVENT = gql`
+  mutation JoinEvent($eventId: String!) {
+    joinEvent(eventId: $eventId) {
+      id
+      status
+      joinedAt
+      user {
+        id
+        fullName
+        phoneNumber
+      }
+    }
+  }
+`;
+
+export const LEAVE_EVENT = gql`
+  mutation LeaveEvent($eventId: String!) {
+    leaveEvent(eventId: $eventId)
+  }
+`;
+
+// =============================================================================
+// COACHES QUERIES
+// =============================================================================
+
+// Fragment for safe favorite sports fetching
+const FAVORITE_SPORTS_FRAGMENT = gql`
+  fragment FavoriteSportsFragment on User {
+    favoriteSports {
+      sport {
+        id
+        name
+      }
+    }
+  }
+`;
+
+export const GET_ALL_COACHES = gql`
+  ${FAVORITE_SPORTS_FRAGMENT}
+  query GetAllCoach {
+    coaches {
+      id
+      fullName
+      rating
+      avatar {
+        url
+      }
+      ...FavoriteSportsFragment
+      coachProfile {
+        id
+        hourlyRate
+        isAvailable
+        bio
+      }
+    }
+  }
+`;
+
+export const GET_COACH_PROFILE_MOBILE = gql`
+  ${FAVORITE_SPORTS_FRAGMENT}
+  query GetCoachProfileMobile($coachProfileId: Int!) {
+    coachProfile(id: $coachProfileId) {
+      id
+      bio
+      hourlyRate
+      isAvailable
+      yearsOfExperience
+      
+      user {
+        id
+        fullName
+        rating
+        avatar {
+          url
+        }
+        ...FavoriteSportsFragment
+      }
+    }
+    
+    coachReviewStats(coachProfileId: $coachProfileId) {
+      averageRating
+      totalReviews
+    }
+  }
+`;
+
+export const GET_COACH_PROFILE_FALLBACK = gql`
+  query GetCoachProfileMobileFallback($coachProfileId: Int!) {
+    coachProfile(id: $coachProfileId) {
+      id
+      bio
+      hourlyRate
+      isAvailable
+      yearsOfExperience
+      
+      user {
+        id
+        fullName
+        rating
+        avatar {
+          url
+        }
+      }
+    }
+    
+    coachReviewStats(coachProfileId: $coachProfileId) {
+      averageRating
+      totalReviews
     }
   }
 `;
@@ -173,39 +291,159 @@ export const REMOVE_FAVORITE_SPORT = gql`
 `;
 
 // =============================================================================
+// STADIUM QUERIES & MUTATIONS
+// =============================================================================
+
+// Stadium fragment for reusability
+const STADIUM_FRAGMENT = gql`
+  fragment StadiumFields on Stadium {
+    id
+    name
+    googleMap
+    address
+    latitude
+    longitude
+    phone
+    email
+    website
+    otherContacts
+    description
+    startTime
+    endTime
+    otherInfo
+    sports
+    numberOfFields
+    fields {
+      id
+      fieldName
+    }
+    bank
+    accountName
+    accountNumber
+    price
+    avatarUrl
+    bannerUrl
+    galleryUrls
+  }
+`;
+
+// Get all stadiums
+export const GET_ALL_STADIUMS = gql`
+  query GetAllStadiums {
+    stadiums {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Get stadium by ID
+export const GET_STADIUM_BY_ID = gql`
+  query GetStadium($id: Int!) {
+    stadium(id: $id) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Get stadiums by user ID
+export const GET_STADIUMS_BY_USER = gql`
+  query GetStadiumsByUser($userId: Int!) {
+    stadiumsByUser(userId: $userId) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Get stadiums by name
+export const GET_STADIUMS_BY_NAME = gql`
+  query GetStadiumsByName($name: String!) {
+    stadiumsByName(name: $name) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Get stadiums by address
+export const GET_STADIUMS_BY_ADDRESS = gql`
+  query GetStadiumsByAddress($input: FindStadiumsByAddressInput!) {
+    stadiumsByAddress(input: $input) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Create stadium
+export const CREATE_STADIUM = gql`
+  mutation CreateStadium($createStadiumInput: CreateStadiumInput!) {
+    createStadium(createStadiumInput: $createStadiumInput) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Create stadium with steps
+export const CREATE_STADIUM_WITH_STEPS = gql`
+  mutation CreateStadiumWithSteps($createStadiumStepsInput: CreateStadiumStepsInput!) {
+    createStadiumWithSteps(createStadiumStepsInput: $createStadiumStepsInput) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Update stadium
+export const UPDATE_STADIUM = gql`
+  mutation UpdateStadium($updateStadiumInput: UpdateStadiumInput!) {
+    updateStadium(updateStadiumInput: $updateStadiumInput) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Update stadium bank info
+export const UPDATE_STADIUM_BANK = gql`
+  mutation UpdateStadiumBank($id: Int!, $input: UpdateStadiumBankInput!) {
+    updateStadiumBank(id: $id, input: $input) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Update stadium images
+export const UPDATE_STADIUM_IMAGES = gql`
+  mutation UpdateStadiumImages($id: Int!, $input: UpdateStadiumImagesInput!) {
+    updateStadiumImages(id: $id, input: $input) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// Delete stadium
+export const DELETE_STADIUM = gql`
+  mutation RemoveStadium($id: Int!) {
+    removeStadium(id: $id) {
+      ...StadiumFields
+    }
+  }
+  ${STADIUM_FRAGMENT}
+`;
+
+// =============================================================================
 // FILE UPLOAD QUERIES & MUTATIONS
 // =============================================================================
 
 export const UPLOAD_IMAGE = gql`
   mutation UploadImage($uploadInput: DirectUploadInput!) {
     uploadImage(uploadInput: $uploadInput)
-  }
-`;
-
-export const CREATE_STADIUM_WITH_STEPS = gql`
-  mutation CreateStadiumWithSteps($createStadiumStepsInput: CreateStadiumStepsInput!) {
-    createStadiumWithSteps(createStadiumStepsInput: $createStadiumStepsInput) {
-      id
-      name
-      email
-      phone
-      googleMap
-      address
-      latitude
-      longitude
-      startTime
-      endTime
-      description
-      website
-      otherInfo
-      avatarUrl
-      bannerUrl
-      galleryUrls
-      bank
-      accountName
-      accountNumber
-      createdAt
-    }
   }
 `;
 
@@ -234,179 +472,55 @@ export const GET_FILES_BY_TYPE = gql`
 `;
 
 // =============================================================================
-// STADIUM QUERIES & MUTATIONS
+// REVIEW QUERIES & MUTATIONS
 // =============================================================================
 
-export const GET_STADIUMS_BY_USER = gql`
-  query GetStadiumsByUser($userId: Int!) {
-    stadiumsByUser(userId: $userId) {
+export const CREATE_REVIEW = gql`
+  mutation CreateReview($createReviewInput: CreateReviewInput!) {
+    createReview(createReviewInput: $createReviewInput) {
       id
-      name
-      googleMap
-      phone
-      email
-      website
-      otherContacts
-      description
-      startTime
-      endTime
-      otherInfo
-      sports
-      bank
-      accountName
-      accountNumber
-      avatarUrl
-      bannerUrl
-      galleryUrls
-    }
-  }
-`;
-
-export const GET_STADIUM_STEP1 = gql`
-  query GetStadiumStep1($id: Int!) {
-    stadiumsByUser(userId: $id) {
-      id
-      name
-      googleMap
-      phone
-      email
-      website
-      otherContacts
-      description
-      startTime
-      endTime
-      otherInfo
-      sports
-    }
-  }
-`;
-
-export const GET_STADIUM_STEP2 = gql`
-  query GetStadiumStep2($id: Int!) {
-    stadiumsByUser(userId: $id) {
-      id
-      bank
-      accountName
-      accountNumber
-    }
-  }
-`;
-
-export const GET_STADIUM_STEP3 = gql`
-  query GetStadiumStep3($id: Int!) {
-    stadiumsByUser(userId: $id) {
-      id
-      avatarUrl
-      bannerUrl
-      galleryUrls
-    }
-  }
-`;
-
-export const CREATE_STADIUM = gql`
-  mutation CreateStadium($createStadiumInput: CreateStadiumInput!) {
-    createStadium(createStadiumInput: $createStadiumInput) {
-      id
-    }
-  }
-`;
-
-export const UPDATE_STADIUM_BANK = gql`
-  mutation UpdateStadiumStep2($id: Int!, $input: UpdateStadiumBankInput!) {
-    updateStadiumBank(id: $id, input: $input) {
-      id
-    }
-  }
-`;
-
-export const UPDATE_STADIUM_IMAGES = gql`
-  mutation UpdateStadiumImages($id: Int!, $input: UpdateStadiumImagesInput!) {
-    updateStadiumImages(id: $id, input: $input) {
-      id
-      avatarUrl
-      bannerUrl
-      galleryUrls
-    }
-  }
-`;
-
-// Stadium Status (different from above)
-export const GET_OWNER_STADIUMS = gql`
-  query GetStadiumsByUser($ownerId: Int!) {
-    stadiumsByUser(userId: $ownerId) {
-      id
-      name
-      googleMap
-      phone
-      email
-      avatarUrl
-      description
-    }
-  }
-`;
-
-export const ADD_STADIUM = gql`
-  mutation AddStadium($input: CreateStadiumInput!) {
-    createStadium(createStadiumInput: $input) {
-      id
-      name
-    }
-  }
-`;
-
-export const GET_STADIUM_BY_ID = gql`
-  query Stadium($id: Int!) {
-    stadium(id: $id) {
-      id
-      name
-      phone
-      email
-      website
-      googleMap
-      description
-      startTime
-      endTime
-      otherInfo
-      avatarUrl
-      bannerUrl
-      galleryUrls
-      sports
+      reservationId
+      stadiumId
+      userId
       rating
-      price
-      numberOfFields
-      bank
-      accountName
-      accountNumber
-      otherContacts
-      fields {
-        id
-        fieldName
-      }
+      comment
+      createdAt
+    }
+  }
+`;
+
+export const GET_STADIUM_REVIEWS = gql`
+  query GetStadiumReviews($stadiumId: Int!) {
+    stadiumReviews(stadiumId: $stadiumId) {
+      id
+      rating
+      comment
       createdAt
       user {
         id
-        email
         fullName
+        avatarId
+        avatar {
+          id
+          url
+        }
       }
     }
   }
 `;
 
-export const CREATE_RESERVATION = gql`
-  mutation CreateReservation($createReservationInput: CreateReservationInput!) {
-    createReservation(createReservationInput: $createReservationInput) {
-      id
-      userId
-      stadiumId
-      sport
-      courtType
-      courtNumber
-      date
-      startTime
-      endTime
-      totalPrice
-      status
-      createdAt
+export const GET_REVIEW_STATS = gql`
+  query GetReviewStats($stadiumId: Int!) {
+    reviewStats(stadiumId: $stadiumId) {
+      averageRating
+      totalReviews
+      ratingBreakdown {
+        star1
+        star2
+        star3
+        star4
+        star5
+      }
     }
   }
 `;
@@ -443,6 +557,17 @@ export const GET_USER_RESERVATIONS = gql`
       status
       createdAt
       updatedAt
+      user {
+        id
+        phoneNumber
+        fullName
+        email
+        avatarId
+        avatar {
+          id
+          url
+        }
+      }
       stadium {
         id
         name
@@ -502,6 +627,17 @@ export const GET_USER_RESERVATIONS_BY_DATE_RANGE = gql`
       totalPrice
       status
       createdAt
+      user {
+        id
+        phoneNumber
+        fullName
+        email
+        avatarId
+        avatar {
+          id
+          url
+        }
+      }
       stadium {
         id
         name
@@ -531,11 +667,257 @@ export const GET_OWNER_STADIUM_RESERVATIONS_BY_DATE_RANGE = gql`
         phoneNumber
         fullName
         email
+        avatarId
+        avatar {
+          id
+          url
+        }
       }
       stadium {
         id
         name
       }
+    }
+  }
+`;
+
+export const CREATE_RESERVATION = gql`
+  mutation CreateReservation($createReservationInput: CreateReservationInput!) {
+    createReservation(createReservationInput: $createReservationInput) {
+      id
+      userId
+      stadiumId
+      sport
+      courtType
+      courtNumber
+      date
+      startTime
+      endTime
+      totalPrice
+      status
+      createdAt
+    }
+  }
+`;
+
+// =============================================================================
+// EVENTS QUERIES & MUTATIONS
+// =============================================================================
+
+export const CREATE_EVENT = gql`
+  mutation CreateEvent($input: CreateEventInput!) {
+    createEvent(input: $input) {
+      id
+      title
+      description
+      additionalNotes
+      eventDate
+      startTime
+      endTime
+      maxParticipants
+      isPrivate
+      isSharedCost
+      stadium {
+        id
+        name
+        address
+      }
+      coach {
+        id
+        bio
+        hourlyRate
+        user {
+          id
+          fullName
+          phoneNumber
+        }
+      }
+      coachBooking {
+        id
+        totalPrice
+        status
+      }
+      creator {
+        id
+        fullName
+        phoneNumber
+      }
+      sports {
+        id
+        name
+      }
+      participants {
+        id
+        status
+        joinedAt
+        user {
+          id
+          fullName
+          phoneNumber
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_USER_EVENTS = gql`
+  query GetMyEvents($userId: Int!) {
+    myEvents(userId: $userId) {
+      id
+      title
+      description
+      additionalNotes
+      eventDate
+      startTime
+      endTime
+      maxParticipants
+      isPrivate
+      isSharedCost
+      stadium {
+        id
+        name
+        address
+      }
+      coach {
+        id
+        bio
+        hourlyRate
+        user {
+          id
+          fullName
+          phoneNumber
+        }
+      }
+      creator {
+        id
+        fullName
+        phoneNumber
+      }
+      sports {
+        id
+        name
+      }
+      participants {
+        id
+        status
+        joinedAt
+        user {
+          id
+          fullName
+          phoneNumber
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_EVENTS_BY_CREATOR = gql`
+  query GetEventsByCreator($creatorId: Int!) {
+    eventsByCreator(creatorId: $creatorId) {
+      id
+      title
+      description
+      additionalNotes
+      eventDate
+      startTime
+      endTime
+      maxParticipants
+      isPrivate
+      isSharedCost
+      stadium {
+        id
+        name
+        address
+      }
+      coach {
+        id
+        bio
+        hourlyRate
+        user {
+          id
+          fullName
+          phoneNumber
+        }
+      }
+      creator {
+        id
+        fullName
+        phoneNumber
+      }
+      sports {
+        id
+        name
+      }
+      participants {
+        id
+        status
+        joinedAt
+        user {
+          id
+          fullName
+          phoneNumber
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_ALL_EVENTS = gql`
+  query GetAllEvents {
+    events {
+      id
+      title
+      description
+      additionalNotes
+      eventDate
+      startTime
+      endTime
+      maxParticipants
+      isPrivate
+      isSharedCost
+      stadium {
+        id
+        name
+        address
+        avatarUrl
+      }
+      coach {
+        id
+        bio
+        hourlyRate
+        user {
+          id
+          fullName
+          phoneNumber
+        }
+      }
+      creator {
+        id
+        fullName
+        phoneNumber
+      }
+      sports {
+        id
+        name
+      }
+      participants {
+        id
+        status
+        joinedAt
+        user {
+          id
+          fullName
+          phoneNumber
+        }
+      }
+      createdAt
+      updatedAt
     }
   }
 `; 

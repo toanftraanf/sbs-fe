@@ -73,4 +73,27 @@ export const getWeekDatesForSelector = (numberOfDays: number = 7) => {
   }
   
   return dates;
+};
+
+/**
+ * Generate time slots from stadium operating hours
+ */
+export const generateTimeSlots = (
+  startTime: string,
+  endTime: string,
+  slotDuration: number = 30
+): string[] => {
+  const slots: string[] = [];
+  const start = new Date(`2000-01-01T${startTime}:00`);
+  const end = new Date(`2000-01-01T${endTime}:00`);
+  let current = new Date(start);
+  while (current < end) {
+    const slotStart = current.toTimeString().slice(0, 5);
+    current.setMinutes(current.getMinutes() + slotDuration);
+    const slotEnd = current.toTimeString().slice(0, 5);
+    if (current <= end) {
+      slots.push(`${slotStart} - ${slotEnd}`);
+    }
+  }
+  return slots;
 }; 

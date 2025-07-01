@@ -1,7 +1,7 @@
 import { Reservation } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 
 interface GroupedReservationItemProps {
   group: {
@@ -67,6 +67,45 @@ const GroupedReservationItem: React.FC<GroupedReservationItemProps> = ({
     return "?";
   };
 
+  const renderUserAvatar = () => {
+    const user = representative.user;
+    if (!user) {
+      return (
+        <View className="w-12 h-12 rounded-lg bg-gray-200 items-center justify-center">
+          <Ionicons name="person" size={20} color="#9CA3AF" />
+        </View>
+      );
+    }
+
+    // Check if user has avatar file with url
+    if (user.avatar?.url) {
+      return (
+        <Image
+          source={{ uri: user.avatar.url }}
+          className="w-12 h-12 rounded-lg"
+          style={{ resizeMode: "cover" }}
+          onError={(error) => {
+            console.log(
+              "❌ Avatar image failed to load:",
+              error.nativeEvent.error
+            );
+            console.log("Failed URL:", user.avatar?.url);
+          }}
+          onLoad={() => {
+            console.log("✅ Avatar image loaded successfully");
+          }}
+        />
+      );
+    }
+
+    // Fallback to initials if no avatar file
+    return (
+      <View className="w-12 h-12 rounded-lg bg-green-500 items-center justify-center">
+        <Text className="text-white font-bold text-sm">{getUserInitial()}</Text>
+      </View>
+    );
+  };
+
   // Calculate total price for all reservations in the group
   const getTotalPrice = () => {
     return reservations.reduce((total, reservation) => {
@@ -81,15 +120,7 @@ const GroupedReservationItem: React.FC<GroupedReservationItemProps> = ({
       activeOpacity={0.7}
     >
       {/* User Avatar */}
-      <View className="w-12 h-12 rounded-lg bg-gray-200 items-center justify-center mr-3">
-        {representative.user?.fullName ? (
-          <Text className="text-lg font-bold text-gray-600">
-            {getUserInitial()}
-          </Text>
-        ) : (
-          <Ionicons name="person" size={20} color="#9CA3AF" />
-        )}
-      </View>
+      <View className="mr-3">{renderUserAvatar()}</View>
 
       {/* Reservation Details */}
       <View className="flex-1">

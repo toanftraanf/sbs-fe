@@ -44,7 +44,7 @@ export const FAKE_USER = {
   fullName: "Nguyễn Văn An",
   dateOfBirth: new Date(1995, 5, 15), // June 15, 1995
   gender: "male",
-  address: "123 Nguyễn Huệ, Quận 1, TP.HCM",
+  address: "Chung Cư Bình Minh Garden, 93 P. Đức Giang, Đức Giang, Ngách 49/1 Đức Giang P. Thượng Thanh Hà Nội Thành Phố Hà Nội Biên, Hà Nội",
   role: "player" as const,
   level: UserLevel.INTERMEDIATE, // Use enum value to ensure consistency
   sports: [1, 2], // Cầu lông (ID: 1) and Quần vợt (ID: 2) - backend sport IDs

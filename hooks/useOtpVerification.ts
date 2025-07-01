@@ -109,7 +109,7 @@ export const useOtpVerification = ({ phoneNumber }: UseOtpVerificationProps) => 
         // Navigate based on profile completion
         setTimeout(() => {
           if (shouldRedirectToProfile) {
-            router.replace("/(auth)/user-information-step1");
+            router.replace("/(auth)/user-information");
           } else {
             // User has complete profile, navigate to appropriate tab
             if (result.role === "OWNER") {
