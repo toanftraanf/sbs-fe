@@ -17,6 +17,7 @@ interface UserProfile {
   role: "OWNER" | "CUSTOMER";
   status?: string;
   isVerified?: boolean;
+  avatarUrl?: string;
 }
 
 interface UseUserProfileResult {
