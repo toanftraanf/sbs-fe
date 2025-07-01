@@ -36,6 +36,6 @@ export default {
     GOOGLE_WEB_CLIENT_ID: process.env.GOOGLE_WEB_CLIENT_ID,
     API_BASE_URL: process.env.API_BASE_URL,
     API_VERSION: process.env.API_VERSION,
-    GOONG_API_KEY: process.env.GOONG_API_KEY,
+    GOONG_API_KEY: process.env.EXPO_PUBLIC_GOONG_API_KEY,
   }
 }; 

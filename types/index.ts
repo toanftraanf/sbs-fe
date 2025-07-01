@@ -19,6 +19,8 @@ export interface User {
   dob?: string;
   sex?: "MALE" | "FEMALE" | "OTHER";
   address?: string;
+  latitude?: number;
+  longitude?: number;
   userType?: "PLAYER" | "COACH";
   level?: string;
   status?: string;
@@ -39,8 +41,52 @@ export interface UpdateUserInput {
   dob?: string;
   sex?: "MALE" | "FEMALE" | "OTHER";
   address?: string;
+  latitude?: number;
+  longitude?: number;
   userType?: "PLAYER" | "COACH";
   level?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "PRO";
+}
+
+// =============================================================================
+// COACH TYPES
+// =============================================================================
+
+export interface CoachProfile {
+  id: string;
+  hourlyRate?: number;
+  isAvailable: boolean;
+  bio?: string;
+  yearsOfExperience?: number;
+}
+
+export interface CoachReviewStats {
+  averageRating: number;
+  totalReviews: number;
+}
+
+export interface CoachReview {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  user: {
+    id: string;
+    fullName: string;
+    avatar?: {
+      url: string;
+    };
+  };
+}
+
+export interface Coach {
+  id: string;
+  fullName: string;
+  rating?: number;
+  avatar?: {
+    url: string;
+  };
+  coachProfile?: CoachProfile;
+  favoriteSports?: UserFavoriteSport[];
 }
 
 // =============================================================================
@@ -98,6 +144,7 @@ export interface Stadium {
   accountName?: string;
   accountNumber?: string;
   otherPayments?: string[];
+  pricingImages?: string[];
   otherContacts?: string[];
   createdAt?: string;
   updatedAt?: string;
@@ -256,4 +303,23 @@ export interface CreateReviewInput {
   userId: number;
   rating: number;
   comment: string;
+}
+
+// =============================================================================
+// EVENT TYPES
+// =============================================================================
+
+export interface EventFormData {
+  eventTitle: string;
+  selectedSports: number[];
+  eventDate: Date | null;
+  startTime: Date | null;
+  endTime: Date | null;
+  selectedStadium: Stadium | null;
+  selectedCoach: Coach | null;
+  maxParticipants: string;
+  description: string;
+  additionalNotes: string;
+  isSharedCost: boolean;
+  isPrivate: boolean;
 } 

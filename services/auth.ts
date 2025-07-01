@@ -1,3 +1,4 @@
+import { UserRole } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apolloClient } from "../config/apollo";
 import {
@@ -95,7 +96,7 @@ class AuthService {
     }
   }
 
-  public async checkExistingUser(phoneNumber: string, userRole: string): Promise<any> {
+  public async checkExistingUser(phoneNumber: string, userRole: UserRole): Promise<any> {
     try {
       const { data } = await apolloClient.mutate({
         mutation: CHECK_EXISTING_USER,
@@ -290,6 +291,8 @@ class AuthService {
     dob?: string;
     sex?: "MALE" | "FEMALE" | "OTHER";
     address?: string;
+    latitude?: number;
+    longitude?: number;
     userType?: "PLAYER" | "COACH";
     level?: string;
   }): Promise<any> {
@@ -301,6 +304,8 @@ class AuthService {
         dob: input.dob,
         sex: input.sex,
         address: input.address,
+        latitude: input.latitude,
+        longitude: input.longitude,
         userType: input.userType,
         level: input.level,
       };
@@ -330,6 +335,8 @@ class AuthService {
     dob: string;
     sex: "MALE" | "FEMALE" | "OTHER";
     address: string;
+    latitude: number;
+    longitude: number;
     userType: "PLAYER" | "COACH";
     level: string;
     sportIds: number[];
@@ -342,6 +349,8 @@ class AuthService {
         dob: userProfileData.dob,
         sex: userProfileData.sex,
         address: userProfileData.address,
+        latitude: userProfileData.latitude,
+        longitude: userProfileData.longitude,
         userType: userProfileData.userType,
         level: userProfileData.level,
       });

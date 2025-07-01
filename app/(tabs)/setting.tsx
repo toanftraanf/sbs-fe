@@ -1,11 +1,8 @@
-import { useAuth } from "@/contexts/AuthContext";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   Text,
@@ -14,228 +11,26 @@ import {
 import ProfileHeader from "../../components/ProfileHeader";
 import SettingsMenuItem from "../../components/SettingsMenuItem";
 import SettingsSection from "../../components/SettingsSection";
-import { getUserById } from "../../services/user";
-
-interface User {
-  id: number;
-  fullName?: string;
-  email?: string;
-  phoneNumber?: string;
-  role?: string;
-  userType?: string;
-  avatar?: {
-    id: string;
-    url: string;
-  };
-}
-
-// Owner menu items - Main features
-const OWNER_MAIN_ITEMS = [
-  {
-    id: "stadium-list",
-    title: "Danh sách cụm sân",
-    icon: "business-outline" as keyof typeof Ionicons.glyphMap,
-    route: "/stadium-list/stadium-list",
-    color: "#4CAF50",
-  },
-  {
-    id: "staff-list",
-    title: "Danh sách nhân viên",
-    icon: "people-outline" as keyof typeof Ionicons.glyphMap,
-    route: null,
-    color: "#2196F3",
-  },
-  {
-    id: "revenue-report",
-    title: "Báo cáo doanh thu",
-    icon: "bar-chart-outline" as keyof typeof Ionicons.glyphMap,
-    route: null,
-    color: "#9C27B0",
-  },
-];
-
-// Owner menu items - App features
-const OWNER_APP_ITEMS = [
-  {
-    id: "share-app",
-    title: "Chia sẻ ứng dụng",
-    icon: "share-outline" as keyof typeof Ionicons.glyphMap,
-    route: null,
-    color: "#607D8B",
-  },
-  {
-    id: "terms",
-    title: "Điều khoản và điều kiện",
-    icon: "document-text-outline" as keyof typeof Ionicons.glyphMap,
-    route: null,
-    color: "#795548",
-  },
-  {
-    id: "about",
-    title: "Về chúng tôi",
-    icon: "information-circle-outline" as keyof typeof Ionicons.glyphMap,
-    route: null,
-    color: "#009688",
-  },
-  {
-    id: "delete-account",
-    title: "Xóa tài khoản",
-    icon: "trash-outline" as keyof typeof Ionicons.glyphMap,
-    route: null,
-    color: "#F44336",
-    isDestructive: true,
-  },
-  {
-    id: "logout",
-    title: "Đăng xuất",
-    icon: "log-out-outline" as keyof typeof Ionicons.glyphMap,
-    route: null,
-    color: "#FF5722",
-    isDestructive: true,
-  },
-];
+import useSetting from "../../hooks/useSetting";
+import {
+  CUSTOMER_APP_ITEMS,
+  CUSTOMER_MAIN_ITEMS,
+  OWNER_APP_ITEMS,
+  OWNER_MAIN_ITEMS,
+} from "../../types/settings";
 
 export default function Setting() {
-  const { user, logout } = useAuth();
-  const [userProfile, setUserProfile] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchUserProfile();
-  }, [user?.id]);
-
-  const fetchUserProfile = async () => {
-    try {
-      if (user?.id) {
-        const userId =
-          typeof user.id === "string" ? parseInt(user.id, 10) : user.id;
-        const profileData = await getUserById(userId);
-        setUserProfile(profileData);
-      }
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      setError("Không thể tải thông tin profile. Hiển thị thông tin cơ bản.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Determine if user is owner/stadium manager
-  const isOwner = user?.role === "OWNER" || userProfile?.userType === "OWNER";
-
-  const handleOwnerMenuPress = (
-    item: (typeof OWNER_MAIN_ITEMS)[0] | (typeof OWNER_APP_ITEMS)[0]
-  ) => {
-    switch (item.id) {
-      case "stadium-list":
-        router.push("/stadium-list/stadium-list");
-        break;
-      case "staff-list":
-        Alert.alert(
-          "Thông báo",
-          "Tính năng quản lý nhân viên sẽ được triển khai sớm!"
-        );
-        break;
-      case "revenue-report":
-        Alert.alert(
-          "Thông báo",
-          "Tính năng báo cáo doanh thu sẽ được triển khai sớm!"
-        );
-        break;
-      case "share-app":
-        handleShareApp();
-        break;
-      case "terms":
-        Alert.alert(
-          "Thông báo",
-          "Điều khoản và điều kiện sẽ được cập nhật sớm!"
-        );
-        break;
-      case "about":
-        Alert.alert(
-          "Về chúng tôi",
-          "SportNow - Ứng dụng quản lý sân thể thao\nPhiên bản: 1.0.0"
-        );
-        break;
-      case "delete-account":
-        handleDeleteAccount();
-        break;
-      case "logout":
-        handleLogout();
-        break;
-      default:
-        if (item.route) {
-          router.push(item.route as any);
-        }
-    }
-  };
-
-  const handleShareApp = () => {
-    Alert.alert(
-      "Chia sẻ ứng dụng",
-      "Tính năng chia sẻ sẽ được triển khai sớm!"
-    );
-  };
-
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      "Xóa tài khoản",
-      "Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.",
-      [
-        { text: "Hủy", style: "cancel" },
-        {
-          text: "Xóa",
-          style: "destructive",
-          onPress: () => {
-            Alert.alert(
-              "Thông báo",
-              "Tính năng xóa tài khoản sẽ được triển khai sớm!"
-            );
-          },
-        },
-      ]
-    );
-  };
-
-  const handleLogout = () => {
-    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Đăng xuất",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await logout();
-            router.replace("/(auth)/login");
-          } catch (error) {
-            console.error("Logout error:", error);
-            Alert.alert("Lỗi", "Không thể đăng xuất. Vui lòng thử lại.");
-          }
-        },
-      },
-    ]);
-  };
-
-  const getUserDisplayName = () => {
-    if (userProfile?.fullName) {
-      return userProfile.fullName;
-    }
-    if (userProfile?.phoneNumber) {
-      return `User ${userProfile.phoneNumber.slice(-4)}`;
-    }
-    return isOwner ? "Chủ sân" : "Người dùng";
-  };
-
-  const getUserSubtitle = () => {
-    if (userProfile?.email) {
-      return userProfile.email;
-    }
-    if (userProfile?.phoneNumber) {
-      return userProfile.phoneNumber;
-    }
-    return isOwner ? "Quản lý sân thể thao" : "Profile của bạn";
-  };
+  const {
+    user,
+    userProfile,
+    loading,
+    error,
+    isOwner,
+    handleOwnerMenuPress,
+    handleCustomerMenuPress,
+    getUserDisplayName,
+    getUserSubtitle,
+  } = useSetting();
 
   if (loading) {
     return (
@@ -252,7 +47,7 @@ export default function Setting() {
     );
   }
 
-  // Owner Settings UI (Using Customer Components)
+  // Owner Settings UI
   if (isOwner) {
     return (
       <>
@@ -344,96 +139,32 @@ export default function Setting() {
         >
           {/* Green Section - User Features */}
           <SettingsSection backgroundColor="#E8F5E8" marginBottom={16}>
-            <SettingsMenuItem
-              title="Lịch sử đặt sân của bạn"
-              icon="time"
-              iconColor="#5A983B"
-              variant="customer"
-              onPress={() => {
-                router.push("/stadium-booking/booking-history");
-              }}
-            />
-            <SettingsMenuItem
-              title="Lịch sử sự kiện của bạn"
-              icon="calendar"
-              iconColor="#5A983B"
-              variant="customer"
-              onPress={() => {
-                Alert.alert(
-                  "Thông báo",
-                  "Tính năng lịch sử sự kiện sẽ được cập nhật sớm."
-                );
-              }}
-            />
-            <SettingsMenuItem
-              title="Ưu đãi cho bạn"
-              icon="gift"
-              iconColor="#5A983B"
-              variant="customer"
-              onPress={() => {
-                Alert.alert(
-                  "Thông báo",
-                  "Tính năng ưu đãi sẽ được cập nhật sớm."
-                );
-              }}
-            />
-            <SettingsMenuItem
-              title="Tài khoản của bạn"
-              icon="shield-checkmark"
-              iconColor="#5A983B"
-              variant="customer"
-              onPress={() => {
-                Alert.alert(
-                  "Thông báo",
-                  "Tính năng quản lý tài khoản sẽ được cập nhật sớm."
-                );
-              }}
-            />
+            {CUSTOMER_MAIN_ITEMS.map((item) => (
+              <SettingsMenuItem
+                key={item.id}
+                title={item.title}
+                icon={item.icon}
+                iconColor={item.iconColor}
+                variant="customer"
+                onPress={() => handleCustomerMenuPress(item.id)}
+              />
+            ))}
           </SettingsSection>
 
           {/* White Section - App Features */}
           <SettingsSection backgroundColor="white" marginBottom={16}>
-            <SettingsMenuItem
-              title="Điều khoản và điều kiện"
-              icon="document-text"
-              iconColor="#6B7280"
-              variant="customer"
-              onPress={() => {
-                Alert.alert(
-                  "Thông báo",
-                  "Tính năng điều khoản sẽ được cập nhật sớm."
-                );
-              }}
-            />
-            <SettingsMenuItem
-              title="Về chúng tôi"
-              icon="information-circle"
-              iconColor="#6B7280"
-              variant="customer"
-              onPress={() => {
-                Alert.alert(
-                  "Về chúng tôi",
-                  "SportNow - Ứng dụng đặt sân thể thao\nPhiên bản: 1.0.0"
-                );
-              }}
-            />
-            <SettingsMenuItem
-              title="Xóa tài khoản"
-              icon="trash"
-              iconColor="#EF4444"
-              variant="customer"
-              isDestructive={true}
-              onPress={handleDeleteAccount}
-            />
-            <SettingsMenuItem
-              title="Đăng xuất"
-              icon="log-out"
-              iconColor="#EF4444"
-              variant="customer"
-              isDestructive={true}
-              onPress={handleLogout}
-              showArrow={false}
-            />
+            {CUSTOMER_APP_ITEMS.map((item) => (
+              <SettingsMenuItem
+                key={item.id}
+                title={item.title}
+                icon={item.icon}
+                iconColor={item.iconColor}
+                variant="customer"
+                isDestructive={item.isDestructive}
+                onPress={() => handleCustomerMenuPress(item.id)}
+                showArrow={item.id !== "logout"}
+              />
+            ))}
           </SettingsSection>
         </ScrollView>
       </SafeAreaView>

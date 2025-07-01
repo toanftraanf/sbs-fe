@@ -67,18 +67,6 @@ export const getUserById = async (id: number): Promise<User | null> => {
     
     if (data && data.user) {
       const user = data.user;
-      console.log('✅ User found:');
-      console.log('📋 User details:');
-      console.log('   - ID:', user.id);
-      console.log('   - Full Name:', user.fullName || 'N/A');
-      console.log('   - Email:', user.email || 'N/A');
-      console.log('   - Phone:', user.phoneNumber);
-      console.log('   - DOB:', user.dob || 'N/A');
-      console.log('   - Sex:', user.sex || 'N/A');
-      console.log('   - Address:', user.address || 'N/A');
-      console.log('   - User Type:', user.userType || 'N/A');
-      console.log('   - Level:', user.level || 'N/A');
-      
       return user;
     }
     
