@@ -30,12 +30,15 @@ const UPDATE_PROFILE_AVATAR = gql`
 
 export default function ProfileScreen() {
   const { user } = useAuth();
-  const { profile, loading } = useUserProfile();
+  // <-- Bổ sung refetch để reload profile sau khi mutate
+  const { profile, loading, refetch } = useUserProfile();
   const apolloClient = useApolloClient();
 
+  // local state để lưu URL mới sau khi upload
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [showImagePicker, setShowImagePicker] = React.useState(false);
 
+  // Đồng bộ lần đầu: nếu profile.avatarUrl có (placeholder hoặc thật), set vào state
   React.useEffect(() => {
     if (profile?.avatarUrl) {
       setAvatarUrl(profile.avatarUrl);
@@ -50,7 +53,11 @@ export default function ProfileScreen() {
     if (!dateOfBirth) return "Chưa cập nhật";
     const birth = new Date(dateOfBirth);
     const today = new Date();
-    const age = today.getFullYear() - birth.getFullYear();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
     return `${age} tuổi`;
   };
 
@@ -88,6 +95,9 @@ export default function ProfileScreen() {
     );
   }
 
+  // ưu tiên avatarUrl (state), nếu null thì dùng profile.avatarUrl (đã có placeholder)
+  const displayedAvatar = avatarUrl ?? profile?.avatarUrl;
+
   return (
     <View className="flex-1 bg-gray-50">
       {/* Header */}
@@ -120,18 +130,16 @@ export default function ProfileScreen() {
               onPress={() => setShowImagePicker(true)}
               className="w-20 h-20 rounded-full bg-primary items-center justify-center mr-4 overflow-hidden"
             >
-              {avatarUrl ? (
+              {displayedAvatar ? (
                 <Image
-                  source={{ uri: avatarUrl }}
+                  source={{ uri: displayedAvatar }}
                   className="w-full h-full"
                   resizeMode="cover"
                 />
-              ) : getDisplayName() ? (
+              ) : (
                 <Text className="text-2xl font-bold text-white">
                   {getDisplayName().charAt(0).toUpperCase()}
                 </Text>
-              ) : (
-                <Ionicons name="person" size={40} color="white" />
               )}
             </TouchableOpacity>
             <View className="flex-1">
@@ -163,7 +171,11 @@ export default function ProfileScreen() {
             ) : (
               <TouchableOpacity className="flex-row items-center">
                 <Text className="text-gray-500 mr-2">Chưa có email</Text>
-                <Ionicons name="add-circle-outline" size={20} color="#7CB518" />
+                <Ionicons
+                  name="add-circle-outline"
+                  size={20}
+                  color="#7CB518"
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -187,7 +199,9 @@ export default function ProfileScreen() {
             <Text className="text-gray-700 font-medium">Giới tính</Text>
             <View className="flex-row items-center">
               <Ionicons
-                name={profile?.sex?.toLowerCase() === "male" ? "male" : "female"}
+                name={
+                  profile?.sex?.toLowerCase() === "male" ? "male" : "female"
+                }
                 size={16}
                 color="#666"
                 className="mr-1"
@@ -286,7 +300,7 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* Modal chọn ảnh và upload */}
-       <ImagePickerModal
+      <ImagePickerModal
         visible={showImagePicker}
         title="Chọn ảnh đại diện"
         folder="avatars"
@@ -295,28 +309,45 @@ export default function ProfileScreen() {
         onClose={() => setShowImagePicker(false)}
         onImageSelected={async (uri: string) => {
           setShowImagePicker(false);
-           try {
-        const uploadedUrl = await uploadAvatar(apolloClient, uri);
+          try {
+            // 1) Upload lên Cloudinary (service existing của bạn)
+            const uploadedUrl = await uploadAvatar(apolloClient, uri);
 
-        const { data } = await apolloClient.mutate<{
-          updateUserAvatar: { id: number; avatarUrl: string };
-        }>({
-          mutation: UPDATE_PROFILE_AVATAR,
-          variables: {
-            input: {
-              id: user?.id,
-              avatarUrl: uploadedUrl,
-            },
-          },
-        });
+            // 2) Gọi GraphQL để lưu vào SQL và trả về avatarUrl
+            const { data } = await apolloClient.mutate({
+              mutation: UPDATE_PROFILE_AVATAR,
+              variables: {
+                input: {
+                  id: user!.id,
+                  avatarUrl: uploadedUrl,
+                },
+              },
+              update: (cache, { data }) => {
+                if (data?.updateUserAvatar) {
+                  cache.modify({
+                    id: cache.identify({ __typename: "User", id: user!.id }),
+                    fields: {
+                      avatarUrl: () => data.updateUserAvatar.avatarUrl,
+                    },
+                  });
+                }
+              },
+            });
 
-        if (data?.updateUserAvatar.avatarUrl) {
-          setAvatarUrl(data.updateUserAvatar.avatarUrl);
-        }
-      } catch (err) {
-        console.error("❌ Error updating avatar:", err);
-        Alert.alert("Lỗi", "Không thể cập nhật ảnh đại diện. Vui lòng thử lại.");
-      }
+            // 3) Cập nhật state để render ngay URL mới
+            if (data?.updateUserAvatar.avatarUrl) {
+              setAvatarUrl(data.updateUserAvatar.avatarUrl);
+            }
+
+            // 4) Refetch profile để chắc chắn lần vào lại cũng có avatar mới
+            await refetch();
+          } catch (err) {
+            console.error("❌ Error updating avatar:", err);
+            Alert.alert(
+              "Lỗi",
+              "Không thể cập nhật ảnh đại diện. Vui lòng thử lại."
+            );
+          }
         }}
       />
     </View>

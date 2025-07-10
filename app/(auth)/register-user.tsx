@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
-// import GoogleLoginButton from "../../components/GoogleLoginButton";
+import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { icons } from "../../constants";
 import authService from "../../services/auth";
 
@@ -126,7 +126,7 @@ export default function RegisterUser() {
         </View>
 
         {/* Google Login Button */}
-        {/* <GoogleLoginButton title="Google" onError={handleGoogleLoginError} /> */}
+        <GoogleLoginButton title="Google" onError={handleGoogleLoginError} />
 
         {/* Login Link */}
         <View className="flex-row justify-center mt-2">
