@@ -20,7 +20,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.xddoan12.sbsfe",
+      "package": "com.sbs.fe",
       "statusBar": {
         "barStyle": "dark-content",
         "backgroundColor": "#FFFFFF"
@@ -49,7 +49,9 @@
           "locationAlwaysPermission": "This app uses location to show nearby stadiums and help you find the best sports venues.",
           "locationWhenInUsePermission": "This app uses location to show nearby stadiums and help you find the best sports venues."
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth"
     ],
     "experiments": {
       "typedRoutes": true

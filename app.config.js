@@ -37,5 +37,8 @@ export default {
     API_BASE_URL: process.env.API_BASE_URL,
     API_VERSION: process.env.API_VERSION,
     GOONG_API_KEY: process.env.EXPO_PUBLIC_GOONG_API_KEY,
+    eas: {
+      projectId: "0ff925f3-d0a5-4958-a6df-0f3d0f322a9b"
+    }
   }
 }; 

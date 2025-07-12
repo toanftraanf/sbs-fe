@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import authService from "../services/auth";
+import { formatPhoneNumber, handleFirebaseError, sendOTP } from "../services/firebaseAuth";
 
 export default function useLogin() {
   const [phone, setPhone] = useState("");
@@ -37,11 +38,27 @@ export default function useLogin() {
       }
 
       if (user) {
-        // User exists, proceed to OTP verification for login
-        router.push({
-          pathname: "/(auth)/verify-otp",
-          params: { phoneNumber: formattedPhone, isLogin: "true" },
-        });
+        // User exists, send Firebase OTP for login
+        try {
+          // Format phone for Firebase (international format)
+          const firebasePhone = formatPhoneNumber(formattedPhone);
+          
+          // Send OTP via Firebase
+          const confirmation = await sendOTP(firebasePhone);
+          
+          // Navigate to OTP verification with verification ID
+          router.push({
+            pathname: "/(auth)/verify-otp",
+            params: { 
+              phoneNumber: formattedPhone, 
+              isLogin: "true",
+              verificationId: confirmation.verificationId
+            },
+          });
+        } catch (firebaseError) {
+          const error = handleFirebaseError(firebaseError);
+          setError(error.message);
+        }
       } else {
         // User doesn't exist, redirect to registration
         router.push({

@@ -2,13 +2,43 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
 import { images } from "../constants";
+import {
+  logFirebaseConfiguration,
+  testFirebaseInitialization,
+  testFirebaseSmsCapability,
+} from "../utils/firebaseTest";
 
 const { width, height } = Dimensions.get("window");
 
 export default function Onboarding() {
   const router = useRouter();
+
+  // Test Firebase on component mount
+  useEffect(() => {
+    const runFirebaseTests = async () => {
+      console.log("🚀 Starting Firebase tests...");
+
+      // Log configuration
+      logFirebaseConfiguration();
+
+      // Test initialization
+      const initResult = await testFirebaseInitialization();
+
+      // Test SMS capability
+      const smsResult = await testFirebaseSmsCapability();
+
+      if (initResult && smsResult) {
+        console.log("✅ All Firebase tests passed!");
+      } else {
+        console.log("❌ Some Firebase tests failed!");
+      }
+    };
+
+    runFirebaseTests();
+  }, []);
 
   return (
     <View className="flex-1 bg-black">
@@ -60,7 +90,7 @@ export default function Onboarding() {
         style={{ bottom: height * 0.06, left: 0, right: 0 }}
       >
         <TouchableOpacity
-          className="bg-white rounded-2xl shadow pt-2 pb-2"
+          className="bg-white rounded-2xl shadow pt-2 pb-2 mb-4"
           onPress={() => router.push("/menu")}
         >
           <View className="flex-row items-center justify-center px-6 py-2">
@@ -75,6 +105,20 @@ export default function Onboarding() {
               name="chevron-forward"
               size={18}
             />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="bg-blue-500 rounded-2xl shadow pt-2 pb-2"
+          onPress={() => router.push("/firebase-test")}
+        >
+          <View className="flex-row items-center justify-center px-6 py-2">
+            <Text
+              className="font-InterBold text-white"
+              style={{ fontSize: width * 0.04 }}
+            >
+              Test Firebase SMS
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
