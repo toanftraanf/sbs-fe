@@ -6,11 +6,13 @@ import { Image, Text, TouchableOpacity, View } from "react-native";
 interface SportNowHeaderProps {
   title: string;
   showBack?: boolean;
+  onBack?: () => void;
 }
 
 export default function SportNowHeader({
   title,
   showBack = true,
+  onBack,     
 }: SportNowHeaderProps) {
   return (
     <View

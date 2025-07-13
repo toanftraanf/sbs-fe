@@ -1,6 +1,7 @@
 import { FAKE_USER, USER_LEVEL_OPTIONS } from "@/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import authService from "@/services/auth";
+import { gql, useMutation } from "@apollo/client";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert } from "react-native";
@@ -11,11 +12,38 @@ export interface LocationData {
   address: string;
 }
 
-export type UserInformationStep = 1 | 2;
+export type UserInformationStep = 1 | 2 | 3;
 
 interface UseUserInformationOptions {
   useFakeData?: boolean;
 }
+
+// Đặt mutation giống hệt backend schema của bạn
+const CREATE_COACH_PROFILE = gql`
+  mutation CreateCoachProfile($input: CreateCoachProfileInput!) {
+    createCoachProfile(input: $input) {
+      id
+      userId
+      bio
+      sports
+      rates {
+        sport
+        price
+      }
+      location
+      phone
+      avatarUrl
+      coachImages
+      isAvailable
+      yearsOfExperience
+      certifications
+      minSessionDuration
+      maxSessionDuration
+      createdAt
+      updatedAt
+    }
+  }
+`;
 
 export const useUserInformation = (
   initialStep: UserInformationStep = 1,
@@ -23,16 +51,16 @@ export const useUserInformation = (
 ) => {
   const { user, setUser } = useAuth();
   const { useFakeData = false } = options;
-  
-  // Check if we're in development environment
   const isDevelopment = __DEV__;
   const shouldUseFakeData = isDevelopment && useFakeData;
-  
-  // Step management
+ const [createCoachProfile] = useMutation(CREATE_COACH_PROFILE);
+  // ─── Step management ─────────────────────────────
   const [currentStep, setCurrentStep] = useState<UserInformationStep>(initialStep);
 
-  // Form data state - empty by default, fake data only in dev if requested
-  const [fullName, setFullName] = useState(shouldUseFakeData ? FAKE_USER.fullName : "");
+  // ─── Personal state ──────────────────────────────
+  const [fullName, setFullName] = useState<string>(
+    shouldUseFakeData ? FAKE_USER.fullName : ""
+  );
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(
     shouldUseFakeData ? FAKE_USER.dateOfBirth : null
   );
@@ -58,25 +86,32 @@ export const useUserInformation = (
     shouldUseFakeData ? FAKE_USER.sports : []
   );
 
-  // UI state
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [isLoading, setIsLoading] = useState(false);
+  // ─── Coach-specific state ────────────────────────
+  const [bio, setBio] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [rates, setRates] = useState<Record<number, string>>({});
+  const [yearsOfExperience, setYearsOfExperience] = useState<string>("");
+  const [certifications, setCertifications] = useState<string>("");
+  const [minSessionDuration, setMinSessionDuration] = useState<string>("");
+  const [maxSessionDuration, setMaxSessionDuration] = useState<string>("");
+  const [availability, setAvailability] = useState<boolean>(true);
 
-  // Development helper functions
+  // ─── UI state ────────────────────────────────────
+  const [showLocationPicker, setShowLocationPicker] = useState<boolean>(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // ─── Development helpers ─────────────────────────
   const loadFakeData = () => {
-    if (!isDevelopment) {
-      console.warn("loadFakeData() can only be used in development environment");
-      return;
-    }
-    
+    if (!isDevelopment) return;
+    // personal
     setFullName(FAKE_USER.fullName);
     setDateOfBirth(FAKE_USER.dateOfBirth);
     setGender(FAKE_USER.gender);
     setLocation(
       FAKE_USER.address
         ? {
-            latitude: 21.067202382989908, 
+            latitude: 21.067202382989908,
             longitude: 105.88560925379234,
             address: FAKE_USER.address,
           }
@@ -85,13 +120,17 @@ export const useUserInformation = (
     setRole(FAKE_USER.role);
     setLevel(FAKE_USER.level);
     setSelectedSports(FAKE_USER.sports);
-    
-    // Clear any existing errors
+    // coach
+    setBio("");
+    setPhone("");
+    setRates({});
+    setYearsOfExperience("");
+    setCertifications("");
+    setMinSessionDuration("");
+    setMaxSessionDuration("");
+    setAvailability(true);
     setErrors({});
-    
-    console.log("Fake data loaded for development");
   };
-
   const clearAllData = () => {
     setFullName("");
     setDateOfBirth(null);
@@ -100,247 +139,237 @@ export const useUserInformation = (
     setRole("player");
     setLevel(null);
     setSelectedSports([]);
+    setBio("");
+    setPhone("");
+    setRates({});
+    setYearsOfExperience("");
+    setCertifications("");
+    setMinSessionDuration("");
+    setMaxSessionDuration("");
+    setAvailability(true);
     setErrors({});
-    
-    console.log("All form data cleared");
   };
 
-  // Validation functions
-  const validateStep1 = () => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!fullName || fullName.trim() === "") {
-      newErrors.fullName = "Vui lòng nhập tên người dùng";
-    } else if (fullName.trim().length < 2) {
-      newErrors.fullName = "Tên phải có ít nhất 2 ký tự";
+  // ─── Validation ─────────────────────────────────
+  const validateStep1 = (): boolean => {
+    const e: Record<string, string> = {};
+    if (!fullName.trim()) e.fullName = "Vui lòng nhập tên người dùng";
+    if (!dateOfBirth) e.dateOfBirth = "Vui lòng chọn ngày sinh";
+    if (!gender) e.gender = "Vui lòng chọn giới tính";
+    if (!location) e.location = "Vui lòng chọn vị trí của bạn";
+    if (!level) e.level = "Vui lòng chọn trình độ";
+    if (selectedSports.length === 0)
+      e.sports = "Vui lòng chọn ít nhất một môn thể thao";
+    setErrors(e);
+    if (Object.keys(e).length) {
+      Alert.alert("Thông tin chưa hợp lệ", Object.values(e)[0]);
+      return false;
     }
-
-    if (!dateOfBirth) {
-      newErrors.dateOfBirth = "Vui lòng chọn ngày sinh";
-    } else {
-      const age = new Date().getFullYear() - dateOfBirth.getFullYear();
-      if (age < 13) {
-        newErrors.dateOfBirth = "Bạn phải từ 13 tuổi trở lên";
-      } else if (age > 100) {
-        newErrors.dateOfBirth = "Vui lòng nhập ngày sinh hợp lệ";
+    return true;
+  };
+  const validateCoachInfo = (): boolean => {
+    const e: Record<string, string> = {};
+    if (!bio.trim()) e.bio = "Nhập phần giới thiệu";
+    if (!phone.trim()) e.phone = "Nhập số điện thoại";
+    if (selectedSports.length === 0)
+      e.selectedSports = "Chọn ít nhất 1 môn huấn luyện";
+    selectedSports.forEach((sid) => {
+      const v = rates[sid];
+      if (!v || isNaN(Number(v)) || Number(v) <= 0) {
+        e[`rate_${sid}`] = "Giá phải > 0";
       }
+    });
+    if (!yearsOfExperience || isNaN(Number(yearsOfExperience)))
+      e.yearsOfExperience = "Nhập năm kinh nghiệm";
+    if (!minSessionDuration || isNaN(Number(minSessionDuration)))
+      e.minSessionDuration = "Nhập thời gian tối thiểu";
+    if (!maxSessionDuration || isNaN(Number(maxSessionDuration)))
+      e.maxSessionDuration = "Nhập thời gian tối đa";
+    setErrors(e);
+    if (Object.keys(e).length) {
+      Alert.alert("Thông tin huấn luyện viên chưa hợp lệ", Object.values(e)[0]);
+      return false;
     }
-
-    if (!gender) {
-      newErrors.gender = "Vui lòng chọn giới tính";
-    }
-
-    if (!location) {
-      newErrors.location = "Vui lòng chọn vị trí của bạn";
-    }
-
-    if (!level) {
-      newErrors.level = "Vui lòng chọn trình độ";
-    }
-
-    if (selectedSports.length === 0) {
-      newErrors.sports = "Vui lòng chọn ít nhất một môn thể thao";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return true;
   };
 
-  const clearFieldError = (fieldName: string) => {
-    if (errors[fieldName]) {
-      const newErrors = { ...errors };
-      delete newErrors[fieldName];
-      setErrors(newErrors);
+  // ─── Handlers Step 1 ────────────────────────────
+  const handleFullNameChange = (t: string) => {
+    setFullName(t);
+    if (errors.fullName) {
+      const o = { ...errors };
+      delete o.fullName;
+      setErrors(o);
     }
   };
-
-  // Event handlers for Step 1
-  const handleFullNameChange = (text: string) => {
-    setFullName(text);
-    clearFieldError("fullName");
+  const handleDateOfBirthChange = (d: Date | null) => {
+    setDateOfBirth(d);
+    if (errors.dateOfBirth) {
+      const o = { ...errors };
+      delete o.dateOfBirth;
+      setErrors(o);
+    }
   };
-
-  const handleDateOfBirthChange = (date: Date | null) => {
-    setDateOfBirth(date);
-    clearFieldError("dateOfBirth");
+  const handleGenderChange = (g: string | null) => {
+    setGender(g);
+    if (errors.gender) {
+      const o = { ...errors };
+      delete o.gender;
+      setErrors(o);
+    }
   };
-
-  const handleGenderChange = (value: string | null) => {
-    setGender(value);
-    clearFieldError("gender");
+  const handleLocationSelect = (l: LocationData) => {
+    setLocation(l);
+    if (errors.location) {
+      const o = { ...errors };
+      delete o.location;
+      setErrors(o);
+    }
   };
-
-  const handleLocationSelect = (selectedLocation: LocationData) => {
-    setLocation(selectedLocation);
-    clearFieldError("location");
+  const handleLevelChange = (l: string | null) => {
+    setLevel(l);
+    if (errors.level) {
+      const o = { ...errors };
+      delete o.level;
+      setErrors(o);
+    }
   };
-
-  const handleLevelChange = (value: string | null) => {
-    setLevel(value);
-    clearFieldError("level");
+  const handleSportsChange = (s: number[]) => {
+    setSelectedSports(s);
+    if (errors.sports) {
+      const o = { ...errors };
+      delete o.sports;
+      setErrors(o);
+    }
   };
-
-  const handleSportsChange = (sports: number[]) => {
-    setSelectedSports(sports);
-    clearFieldError("sports");
-  };
-
   const handleShowLocationPicker = () => setShowLocationPicker(true);
   const handleCloseLocationPicker = () => setShowLocationPicker(false);
 
-  // Step navigation
+  // ─── Navigation ─────────────────────────────────
   const goToNextStep = () => {
     if (currentStep === 1) {
-      console.log("validateStep1", validateStep1());
       if (validateStep1()) {
-        setCurrentStep(2);
-      } else {
-        const firstError = Object.values(errors)[0];
-        Alert.alert("Thông tin không hợp lệ", firstError);
+        setCurrentStep(role === "coach" ? 2 : 3);
+      }
+    } else if (currentStep === 2 && role === "coach") {
+      if (validateCoachInfo()) {
+        setCurrentStep(3);
       }
     }
   };
-
   const goToPreviousStep = () => {
-    console.log("goToPreviousStep called, currentStep:", currentStep);
-    if (currentStep === 2) {
-      console.log("Switching from step 2 to step 1");
+    if (currentStep === 3 && role === "coach") {
+      setCurrentStep(2);
+    } else if (currentStep > 1) {
       setCurrentStep(1);
-    } else if (currentStep === 1) {
-      console.log("Already on step 1, no navigation needed");
-      // When using unified component, step 1 doesn't need to go anywhere
-      // The component itself handles the overall navigation flow
     }
   };
 
-  // Formatting functions for Step 2
-  const formatDate = (date: Date | null) => {
-    if (!date) return "Chưa chọn";
-    return date.toLocaleDateString("vi-VN");
-  };
-
-  const getGenderLabel = (genderValue: string | null) => {
-    const labels: { [key: string]: string } = {
+  // ─── Summary helpers ────────────────────────────
+  const formatDate = (d: Date | null) =>
+    d ? d.toLocaleDateString("vi-VN") : "Chưa chọn";
+  const getGenderLabel = (g: string | null) => {
+    const m: Record<string, string> = {
       male: "Nam",
       female: "Nữ",
       other: "Khác",
     };
-    return genderValue ? labels[genderValue] || genderValue : "Chưa chọn";
+    return g ? m[g] || g : "Chưa chọn";
   };
-
-  const getRoleLabel = (roleValue: "player" | "coach") => {
-    const labels = {
-      player: "Người chơi",
-      coach: "Huấn luyện viên",
-    };
-    return labels[roleValue];
-  };
-
-  const getSportsLabels = (sportIds: number[]) => {
-    const sportsMap: { [key: number]: string } = {
+  const getRoleLabel = (r: "player" | "coach") =>
+    r === "coach" ? "Huấn luyện viên" : "Người chơi";
+  const getSportsLabels = (ids: number[]) => {
+    const m: Record<number, string> = {
       1: "Cầu lông",
       2: "Quần vợt",
       3: "Bóng bàn",
       4: "Pickleball",
     };
-    if (sportIds.length === 0) return "Chưa chọn";
-    return sportIds.map((id) => sportsMap[id] || `Sport ${id}`).join(", ");
+    return ids.length ? ids.map((i) => m[i] || `Sport ${i}`).join(", ") : "Chưa chọn";
   };
-
-  const getLevelLabel = (levelValue: string | null) => {
-    if (!levelValue) return "Chưa chọn";
-    const levelOption = USER_LEVEL_OPTIONS.find(option => option.value === levelValue);
-    return levelOption?.label || levelValue;
+  const getLevelLabel = (l: string | null) => {
+    if (!l) return "Chưa chọn";
+    return USER_LEVEL_OPTIONS.find((o) => o.value === l)?.label || l;
   };
-
-  // Final submission for Step 2
+const levelMapping: Record<string, "BEGINNER"|"INTERMEDIATE"|"ADVANCED"|"PRO"> = {
+  beginner: "BEGINNER",
+  intermediate: "INTERMEDIATE",
+  advanced: "ADVANCED",
+  pro: "PRO",
+};
+  // ─── Final submission ────────────────────────────
   const handleComplete = async () => {
     if (!user?.id) {
-      Alert.alert(
-        "Lỗi",
-        "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại."
-      );
+      Alert.alert("Lỗi", "Vui lòng đăng nhập lại");
       return;
     }
-
     setIsLoading(true);
-
-    try {
-      // Convert data to backend format
-      const sexMapping: { [key: string]: "MALE" | "FEMALE" | "OTHER" } = {
-        male: "MALE",
-        female: "FEMALE",
-        other: "OTHER",
-      };
-
-      const userTypeMapping: { [key: string]: "PLAYER" | "COACH" } = {
-        player: "PLAYER",
-        coach: "COACH",
-      };
-
-      const levelMapping: { [key: string]: string } = {
-        beginner: "BEGINNER",
-        intermediate: "INTERMEDIATE",
-        advanced: "ADVANCED",
-        pro: "PRO",
-      };
-
-      // Save user information to backend
-      const updatedUser = await authService.updateUserProfileWithSports({
-        userId: parseInt(user.id),
+     try {
+    if (role === 'coach') {
+      const updated = await authService.updateUserProfileWithSports({
+        userId: +user.id,
         fullName: fullName.trim(),
-        dob: new Date(dateOfBirth!).toISOString().split("T")[0],
-        sex: sexMapping[gender!] || "OTHER",
-        address: location!.address.trim(),
+        dob: dateOfBirth!.toISOString().slice(0, 10),
+        sex:
+          gender === 'male'
+            ? 'MALE'
+            : gender === 'female'
+            ? 'FEMALE'
+            : 'OTHER',
+        address: location!.address,
         latitude: location!.latitude,
         longitude: location!.longitude,
-        userType: userTypeMapping[role] || "PLAYER",
-        level: levelMapping[level!] || "BEGINNER",
+        userType: 'PLAYER',
+        level: levelMapping[level!] || 'BEGINNER',
         sportIds: selectedSports,
       });
+      setUser({ ...user, ...updated });
 
-      // Update user context with new data
-      setUser({
-        ...user,
-        fullName: updatedUser.fullName,
-        dob: updatedUser.dob,
-        sex: updatedUser.sex,
-        address: updatedUser.address,
-        userType: updatedUser.userType,
-        level: updatedUser.level,
+      router.push('/coach-information');
+     
+    } else {
+      // Nhánh cho player giữ nguyên
+      const updated = await authService.updateUserProfileWithSports({
+        userId: +user.id,
+        fullName: fullName.trim(),
+        dob: dateOfBirth!.toISOString().slice(0, 10),
+        sex:
+          gender === 'male'
+            ? 'MALE'
+            : gender === 'female'
+            ? 'FEMALE'
+            : 'OTHER',
+        address: location!.address,
+        latitude: location!.latitude,
+        longitude: location!.longitude,
+        userType: 'PLAYER',
+        level: levelMapping[level!] || 'BEGINNER',
+        sportIds: selectedSports,
       });
-
-      Alert.alert(
-        "Thành công",
-        "Thông tin cá nhân đã được cập nhật thành công!",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // Navigate based on user role
-              if (user.role === "OWNER") {
-                router.push("/(auth)/stadium-information-step1");
-              } else {
-                router.push("/(tabs)");
-              }
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      console.error("Error saving user information:", error);
-      Alert.alert("Lỗi", "Có lỗi xảy ra khi lưu thông tin. Vui lòng thử lại.");
-    } finally {
-      setIsLoading(false);
+      setUser({ ...user, ...updated });
+      if (user.role === 'OWNER') {
+        router.push('/(auth)/stadium-information-step1');
+      } else {
+        router.push('/(tabs)');
+      }
     }
+
+    // Sau cả hai nhánh đều hiện thông báo thành công
+    Alert.alert('Thành công', 'Đã lưu thông tin', [{ text: 'OK' }]);
+  } catch (error) {
+    console.error(error);
+    Alert.alert('Lỗi', 'Không thể lưu, vui lòng thử lại sau');
+  } finally {
+    setIsLoading(false);
+  }
   };
 
   return {
-    // Step management
+    // navigation
     currentStep,
-    setCurrentStep,
-
-    // Form data state
+    goToNextStep,
+    goToPreviousStep,
+    // personal
     fullName,
     dateOfBirth,
     gender,
@@ -348,16 +377,30 @@ export const useUserInformation = (
     role,
     level,
     selectedSports,
-
-    // UI state
+    // coach
+    bio,
+    setBio,
+    phone,
+    setPhone,
+    rates,
+    setRates,
+    yearsOfExperience,
+    setYearsOfExperience,
+    certifications,
+    setCertifications,
+    minSessionDuration,
+    setMinSessionDuration,
+    maxSessionDuration,
+    setMaxSessionDuration,
+    availability,
+    setAvailability,
+    // UI
     showLocationPicker,
     errors,
     isLoading,
-
-    // Constants
+    // constants
     userLevelOptions: USER_LEVEL_OPTIONS,
-
-    // Step 1 handlers
+    // handlers step1
     handleFullNameChange,
     handleDateOfBirthChange,
     handleGenderChange,
@@ -366,23 +409,12 @@ export const useUserInformation = (
     handleLevelChange,
     handleSportsChange,
     handleShowLocationPicker,
+    validateStep1,
+    user,
     handleCloseLocationPicker,
-
-    // Navigation
-    goToNextStep,
-    goToPreviousStep,
-
-    // Step 2 formatting
-    formatDate,
-    getGenderLabel,
-    getRoleLabel,
-    getSportsLabels,
-    getLevelLabel,
-
-    // Final submission
-    handleComplete,
-
-    // Computed values for Step 2
+    // dev
+    ...(isDevelopment && { loadFakeData, clearAllData, isDevelopment }),
+    // summary
     formattedData: {
       fullName: fullName || "Chưa nhập",
       dateOfBirth: formatDate(dateOfBirth),
@@ -392,13 +424,7 @@ export const useUserInformation = (
       level: getLevelLabel(level),
       sports: getSportsLabels(selectedSports),
     },
-
-    // Development helpers (only available in development)
-    ...(isDevelopment && {
-      loadFakeData,
-      clearAllData,
-      isDevelopment,
-      useFakeData: shouldUseFakeData,
-    }),
+    // final
+    handleComplete,
   };
-}; 
+};

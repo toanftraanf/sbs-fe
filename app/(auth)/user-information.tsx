@@ -7,7 +7,9 @@ import PickerField from "@/components/PickerField";
 import SportNowHeader from "@/components/SportNowHeader";
 import SportsSelector from "@/components/SportsSelector";
 import Toggle from "@/components/Toggle";
+import { useAuth } from "@/contexts/AuthContext";
 import { useUserInformation } from "@/hooks/useUserInformation";
+import { useRouter } from "expo-router"; // ← thêm
 import React from "react";
 import {
   KeyboardAvoidingView,
@@ -19,8 +21,9 @@ import {
 } from "react-native";
 
 export default function UserInformation() {
+  const router = useRouter();                          // ← thêm
   const hookResult = useUserInformation(1);
-
+const { user } = useAuth();     
   const {
     // Step management
     currentStep,
@@ -53,24 +56,49 @@ export default function UserInformation() {
     handleShowLocationPicker,
     handleCloseLocationPicker,
 
-    // Navigation
+    // Navigation (inline for player)
     goToNextStep,
     goToPreviousStep,
-
-    // Step 2 data and handlers
+validateStep1,   
+    // Step 2 data and handlers (only used for player)
     formattedData,
     handleComplete,
   } = hookResult;
 
-  // Development helpers (conditionally available)
-  const loadFakeData = (
-    "loadFakeData" in hookResult ? hookResult.loadFakeData : undefined
-  ) as (() => void) | undefined;
-  const clearAllData = (
-    "clearAllData" in hookResult ? hookResult.clearAllData : undefined
-  ) as (() => void) | undefined;
-  const isDevelopment =
-    "isDevelopment" in hookResult ? hookResult.isDevelopment : false;
+  // --- MÌNH THÊM HÀM NÀY ĐỂ OVERRIDE goToNextStep KHI LÀ COACH ---
+  const handleNext = () => {
+    // giữ validateStep1 nguyên trong hook
+    if (!validateStep1()) return;
+
+    if (role === "coach") {
+      // gom personal data
+      const personal = {
+        userId: +hookResult.user!.id,
+        fullName: fullName.trim(),
+        dob: dateOfBirth!.toISOString().slice(0, 10),
+        sex:
+          gender === "male"
+            ? "MALE"
+            : gender === "female"
+            ? "FEMALE"
+            : "OTHER",
+        address: location!.address,
+        latitude: location!.latitude,
+        longitude: location!.longitude,
+        level,
+        sports: selectedSports,
+      };
+      // chuyển sang coach-information
+      router.push({
+        pathname: "/coach-information",
+        params: { personal: JSON.stringify(personal) },
+      });
+    } else {
+      // nếu là player thì dùng flow cũ
+      goToNextStep();
+    }
+  };
+  // ------------------------------------------------------------------
 
   // Render Step 1
   if (currentStep === 1) {
@@ -93,14 +121,14 @@ export default function UserInformation() {
           </Text>
 
           {/* Development Helper Buttons - Only shown in development */}
-          {isDevelopment && (
+          {hookResult.isDevelopment && (
             <View className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
               <Text className="text-yellow-800 font-semibold text-center mb-3">
                 🛠 Development Tools
               </Text>
               <View className="flex-row space-x-2">
                 <TouchableOpacity
-                  onPress={loadFakeData}
+                  onPress={hookResult.loadFakeData}
                   className="flex-1 bg-blue-500 py-2 px-4 rounded-lg"
                   activeOpacity={0.7}
                 >
@@ -109,7 +137,7 @@ export default function UserInformation() {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={clearAllData}
+                  onPress={hookResult.clearAllData}
                   className="flex-1 bg-gray-500 py-2 px-4 rounded-lg"
                   activeOpacity={0.7}
                 >
@@ -218,7 +246,8 @@ export default function UserInformation() {
             )}
           </View>
 
-          <AppButton title="Tiếp tục" filled onPress={goToNextStep} />
+          {/* ← chỉ thay onPress ở đây */}
+          <AppButton title="Tiếp tục" filled onPress={handleNext} />
         </ScrollView>
 
         {/* Map Location Picker Modal */}
@@ -232,7 +261,7 @@ export default function UserInformation() {
     );
   }
 
-  // Render Step 2
+  // Render Step 2 (chỉ dành cho player)
   return (
     <View className="flex-1 bg-white">
       <SportNowHeader title="Xác nhận thông tin" showBack={false} />
