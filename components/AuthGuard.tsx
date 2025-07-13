@@ -39,6 +39,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Early return if user is authenticated and on main app routes
+      if ((inOnboarding || inMenu || inTabsGroup) && profileChecked) {
+        console.log(
+          "✅ AuthGuard: User authenticated with complete profile, allowing access"
+        );
+        return;
+      }
+
+      // Only check profile if not already checked and on main app routes
       if ((inOnboarding || inMenu || inTabsGroup) && !profileChecked) {
         checkProfileCompletion();
         return;

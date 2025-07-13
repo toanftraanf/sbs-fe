@@ -38,3 +38,28 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Android build files (to prevent filename too long errors)
+android/app/.cxx/
+android/app/build/
+android/.gradle/
+android/gradle/
+android/local.properties
+
+# iOS build files
+ios/build/
+ios/Pods/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp

@@ -79,6 +79,9 @@ export default function useSetting() {
 
   const handleCustomerMenuPress = (itemId: string) => {
     switch (itemId) {
+      case "subscription":
+        router.push("/subscription/subscription");
+        break;
       case "booking-history":
         router.push("/stadium-booking/booking-history");
         break;

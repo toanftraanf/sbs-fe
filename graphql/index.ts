@@ -103,6 +103,7 @@ export const GET_USER = gql`
       role
       status
       isVerified
+      hasSubscription
     }
   }
 `;
@@ -921,3 +922,117 @@ export const GET_ALL_EVENTS = gql`
     }
   }
 `; 
+
+export const GET_SUBSCRIPTIONS = gql`
+  query GetSubscriptions {
+    subscriptions {
+      id
+      name
+      description
+      durationMonths
+      price
+      currency
+      features
+      isActive
+      createdAt
+      updatedAt
+    }
+  }
+`; 
+
+export const GET_USER_SAVED_CARD = gql`
+  query GetUserSavedCard($userId: Int!) {
+    userSavedCard(userId: $userId) {
+      id
+      cardType
+      bankName
+      last4
+      saveForNextPayment
+    }
+  }
+`; 
+
+export const GET_PAYMENT_METHODS = gql`
+  query GetPaymentMethods {
+    paymentMethods {
+      id
+      userId
+      type
+      isDefault
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const CREATE_CARD = gql`
+  mutation CreateCard($createCardInput: CreateCardInput!) {
+    createCard(createCardInput: $createCardInput) {
+      id
+      userId
+      cardType
+      bankName
+      last4
+      saveForNextPayment
+    }
+  }
+`;
+
+export const CREATE_USER_SUBSCRIPTION = gql`
+  mutation CreateUserSubscription($createUserSubscriptionInput: CreateUserSubscriptionInput!) {
+    createUserSubscription(createUserSubscriptionInput: $createUserSubscriptionInput) {
+      id
+      userId
+      subscriptionId
+      startDate
+      endDate
+      status
+      cardId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_USER_SUBSCRIPTION = gql`
+  query GetUserSubscription($userId: Int!) {
+    userSubscriptionsByUserId(userId: $userId) {
+      id
+      userId
+      subscriptionId
+      startDate
+      endDate
+      status
+      isCancelled
+      cardId
+      createdAt
+      updatedAt
+      subscription {
+        id
+        name
+        description
+        durationMonths
+        price
+        currency
+        features
+      }
+    }
+  }
+`;
+
+export const CANCEL_USER_SUBSCRIPTION = gql`
+  mutation CancelUserSubscription($userId: Int!) {
+    cancelUserSubscription(userId: $userId) {
+      id
+      userId
+      subscriptionId
+      startDate
+      endDate
+      status
+      isCancelled
+      cardId
+      createdAt
+      updatedAt
+    }
+  }
+`;

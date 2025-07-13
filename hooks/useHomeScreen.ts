@@ -76,10 +76,13 @@ export function useHomeScreen() {
       const { startDate, endDate } = getCurrentWeekDateRange();
 
       if (!userId || userId <= 0) {
+        console.log("[useHomeScreen] No valid user ID, skipping reservation fetch");
         setReservations([]);
+        setIsLoadingReservations(false);
         return;
       }
 
+      console.log("[useHomeScreen] Fetching user reservations for:", userId);
       const userReservations = await getUserReservationsByDateRange(
         userId,
         startDate,
@@ -88,7 +91,9 @@ export function useHomeScreen() {
       );
 
       setReservations(userReservations);
+      console.log("[useHomeScreen] User reservations loaded:", userReservations.length);
     } catch (error) {
+      console.error("[useHomeScreen] Error fetching user reservations:", error);
       setReservations([]);
     } finally {
       setIsLoadingReservations(false);
@@ -102,6 +107,14 @@ export function useHomeScreen() {
       const ownerId = parseInt(user?.id || "0");
       const { startDate, endDate } = getCurrentWeekDateRange();
 
+      if (!ownerId || ownerId <= 0) {
+        console.log("[useHomeScreen] No valid owner ID, skipping reservation fetch");
+        setStadiumReservations([]);
+        setIsLoadingReservations(false);
+        return;
+      }
+
+      console.log("[useHomeScreen] Fetching stadium reservations for:", ownerId);
       const ownerStadiumReservations = await getOwnerStadiumReservationsByDateRange(
         ownerId,
         startDate,
@@ -110,7 +123,9 @@ export function useHomeScreen() {
       );
 
       setStadiumReservations(ownerStadiumReservations);
+      console.log("[useHomeScreen] Stadium reservations loaded:", ownerStadiumReservations.length);
     } catch (error) {
+      console.error("[useHomeScreen] Error fetching stadium reservations:", error);
       setStadiumReservations([]);
     } finally {
       setIsLoadingReservations(false);
@@ -185,12 +200,23 @@ export function useHomeScreen() {
 
     // Fetch reservations when user is available
     if (user?.id) {
+      console.log("[useHomeScreen] User available, fetching reservations for role:", user.role);
       if (user.role === "CUSTOMER") {
         fetchUserReservations();
       } else if (user.role === "OWNER") {
         fetchStadiumReservations();
       }
     }
+
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (isLoadingReservations) {
+        console.log("[useHomeScreen] Loading timeout reached, setting loading to false");
+        setIsLoadingReservations(false);
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
   }, [user]);
 
   return {

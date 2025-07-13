@@ -78,6 +78,13 @@ export const OWNER_APP_ITEMS: MenuItem[] = [
 // Customer menu items - Main features (Green section)
 export const CUSTOMER_MAIN_ITEMS: MenuItem[] = [
   {
+    id: "subscription",
+    title: "Gói đăng ký",
+    icon: "trophy",
+    route: "/subscription/subscription",
+    iconColor: "#5A983B",
+  },
+  {
     id: "booking-history",
     title: "Lịch sử đặt sân của bạn",
     icon: "time",
