@@ -76,7 +76,6 @@ const GET_USER_RESERVATIONS = gql`
       totalPrice
       status
       createdAt
-      updatedAt
       stadium {
         id
         name
@@ -102,7 +101,6 @@ const GET_OWNER_STADIUM_RESERVATIONS = gql`
       totalPrice
       status
       createdAt
-      updatedAt
       user {
         id
         phoneNumber
@@ -311,9 +309,10 @@ export const getUserReservationsByDateRange = async (
   forceRefresh: boolean = false
 ): Promise<Reservation[]> => {
   try {
+    console.log('Fetching user reservations by date range:', { userId, startDate, endDate, forceRefresh });
     
     const { data } = await apolloClient.query({
-      query: GET_USER_RESERVATIONS_BY_DATE_RANGE,
+      query: GET_USER_RESERVATIONS,
       variables: { userId },
       fetchPolicy: forceRefresh ? 'network-only' : 'cache-first',
       errorPolicy: 'all'
@@ -327,10 +326,11 @@ export const getUserReservationsByDateRange = async (
       return reservation.date >= startDate && reservation.date <= endDate;
     });
     
+    console.log('✅ Filtered reservations for date range:', filteredReservations.length);
     return filteredReservations;
   } catch (error) {
     console.error('💥 Error fetching user reservations by date range:', error);
-    throw error;
+    return []; // Return empty array instead of throwing to prevent app crashes
   }
 };
 
@@ -357,7 +357,7 @@ export const getOwnerStadiumReservationsByDateRange = async (
     return data.ownerStadiumReservationsByDateRange || [];
   } catch (error) {
     console.error('💥 Error fetching owner stadium reservations by date range:', error);
-    throw error;
+    return []; // Return empty array instead of throwing to prevent app crashes
   }
 };
 

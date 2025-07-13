@@ -1,5 +1,6 @@
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -18,8 +19,7 @@ const PremiumPackageCard: React.FC<PremiumPackageCardProps> = ({
     if (onPress) {
       onPress();
     } else {
-      // Default action
-      console.log("Premium package pressed");
+      router.push("/subscription/subscription");
     }
   };
 

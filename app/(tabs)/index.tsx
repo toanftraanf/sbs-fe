@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect } from "react";
 
 import {
   ActivityIndicator,
@@ -15,13 +15,14 @@ import AppHeader from "@/components/AppHeader";
 import GroupedReservationItem from "@/components/GroupedReservationItem";
 import PremiumPackageCard from "@/components/PremiumPackageCard";
 import ReservationModal from "@/components/ReservationModal";
+import { useAuth } from "@/contexts/AuthContext";
 import { useHomeScreen } from "@/hooks/useHomeScreen";
 import { router } from "expo-router";
 
 export default function UserHomeRedirect() {
+  const { user, refetchUser } = useAuth();
   const {
     // State
-    user,
     profile,
     weekDates,
     isLoadingReservations,
@@ -46,12 +47,15 @@ export default function UserHomeRedirect() {
     handleStatusChange,
   } = useHomeScreen();
 
+  // Force refetch user data when component mounts to get latest hasSubscription
+  useEffect(() => {
+    if (user?.id) {
+      refetchUser();
+    }
+  }, [user?.id]);
+
   // Show loading screen while fetching reservations
-  if (
-    isLoadingReservations &&
-    getTodayCustomerReservations().length === 0 &&
-    getTodayReservations().length === 0
-  ) {
+  if (isLoadingReservations && !user) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
         <ActivityIndicator size="large" color="#5A983B" />
@@ -356,7 +360,8 @@ export default function UserHomeRedirect() {
         </TouchableOpacity>
 
         {/* Gói PREMIUM */}
-        <PremiumPackageCard className="mb-3" />
+        {/* Note: hasSubscription might be undefined if backend doesn't support it yet */}
+        {!user?.hasSubscription && <PremiumPackageCard className="mb-3" />}
 
         {/* Tìm và ghép đội */}
         <TouchableOpacity className="bg-white rounded-xl p-4 mb-3 flex-row items-center shadow-sm border border-[#E6F4EA]">
