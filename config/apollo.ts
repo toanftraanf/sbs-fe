@@ -56,6 +56,9 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
       method: operation.getContext().method || "POST",
       headers: operation.getContext().headers || {},
     });
+    
+    // Don't throw network errors to prevent app crashes
+    return;
   }
 });
 
@@ -64,10 +67,10 @@ export const apolloClient = new ApolloClient({
   cache: new InMemoryCache(),
   defaultOptions: {
     query: {
-      fetchPolicy: "network-only",
+      fetchPolicy: "cache-first", // Use cache first, then network
     },
     watchQuery: {
-      fetchPolicy: "network-only",
+      fetchPolicy: "cache-and-network", // Use cache immediately, then update from network
     },
   },
 });

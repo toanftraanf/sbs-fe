@@ -36,6 +36,7 @@ const GET_USER = gql`
         id
         url
       }
+      hasSubscription
     }
   }
 `;

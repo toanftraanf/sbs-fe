@@ -25,6 +25,7 @@ export interface User {
   level?: string;
   status?: string;
   isVerified?: boolean;
+  hasSubscription?: boolean;
 }
 
 export interface AuthContextType {
@@ -32,6 +33,7 @@ export interface AuthContextType {
   setUser: (user: User | null) => void;
   logout: () => Promise<void>;
   isLoading: boolean;
+  refetchUser: () => Promise<void>;
 }
 
 export interface UpdateUserInput {
@@ -232,7 +234,6 @@ export interface Reservation {
   totalPrice: number;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
   createdAt: string;
-  updatedAt: string;
   user?: {
     id: number;
     phoneNumber: string;

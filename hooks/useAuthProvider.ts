@@ -1,3 +1,4 @@
+import { GET_USER } from "@/graphql";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import { apolloClient } from "../config/apollo";
@@ -20,6 +21,8 @@ export default function useAuthProvider(): AuthContextType {
         const isAuthenticated = await authService.isAuthenticated();
         if (isAuthenticated) {
           setUserState(parsedUser);
+          // Refetch user data to get latest hasSubscription status
+          await refetchUser();
         } else {
           await AsyncStorage.removeItem("user");
           setUserState(null);
@@ -31,6 +34,25 @@ export default function useAuthProvider(): AuthContextType {
       setUserState(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const refetchUser = async () => {
+    if (!user) return;
+    try {
+      const { data } = await apolloClient.query({
+        query: GET_USER,
+        variables: { id: parseInt(user.id) },
+        fetchPolicy: "network-only",
+      });
+      
+      if (data?.user) {
+        const updatedUser = { ...user, ...data.user };
+        setUserState(updatedUser);
+        await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error("Error refetching user:", error);
     }
   };
 
@@ -67,5 +89,6 @@ export default function useAuthProvider(): AuthContextType {
     setUser: handleSetUser,
     logout: handleLogout,
     isLoading,
+    refetchUser,
   };
 } 
