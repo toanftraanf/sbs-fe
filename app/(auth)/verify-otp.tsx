@@ -2,7 +2,6 @@ import AppOtpInput from "@/components/AppOtpInput";
 import { useOtpVerification } from "@/hooks/useOtpVerification";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import AppButton from "../../components/AppButton";
 
@@ -46,6 +45,15 @@ export default function VerifyOtp() {
       {/* Input OTP */}
       <View className="items-center mb-4">
         <AppOtpInput value={otp} onChangeText={setOtp} numberOfDigits={6} />
+        {/* Test number autofill for Firebase testing */}
+        <TouchableOpacity
+          style={{ marginTop: 8 }}
+          onPress={() => setOtp("123456")}
+        >
+          <Text className="text-blue-500 underline text-xs">
+            Dùng mã test Firebase (123456)
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Hiển thị thời gian đếm */}

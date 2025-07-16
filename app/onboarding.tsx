@@ -107,20 +107,6 @@ export default function Onboarding() {
             />
           </View>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          className="bg-blue-500 rounded-2xl shadow pt-2 pb-2"
-          onPress={() => router.push("/firebase-test")}
-        >
-          <View className="flex-row items-center justify-center px-6 py-2">
-            <Text
-              className="font-InterBold text-white"
-              style={{ fontSize: width * 0.04 }}
-            >
-              Test Firebase SMS
-            </Text>
-          </View>
-        </TouchableOpacity>
       </View>
     </View>
   );

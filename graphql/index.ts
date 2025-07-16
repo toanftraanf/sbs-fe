@@ -34,8 +34,8 @@ export const CHECK_EXISTING_USER = gql`
 `;
 
 export const AUTHENTICATE = gql`
-  mutation Authenticate($phoneNumber: String!, $otp: String!) {
-    authenticate(phoneNumber: $phoneNumber, otp: $otp) {
+  mutation Authenticate($phoneNumber: String!) {
+    authenticate(phoneNumber: $phoneNumber) {
       user {
         id
         phoneNumber

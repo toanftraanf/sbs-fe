@@ -149,6 +149,119 @@ ENV=dev
    - For local development: `http://{your-ip-address}:8089` (or your port)
    - For production: Your deployed backend URL
 
+## 📲 Firebase SMS Authentication Setup
+
+### 1. Enable Firebase Phone Authentication
+
+- Go to [Firebase Console](https://console.firebase.google.com/) > Authentication > Sign-in method.
+- Enable **Phone** as a sign-in provider.
+
+### 2. Configure Android App in Firebase
+
+- Add your Android app in Firebase Console (use the package name from `app.json`).
+- Download `google-services.json` and place it in `android/app/`.
+- Add your app's SHA-1 and SHA-256 fingerprints in Firebase Console (see [docs](https://rnfirebase.io/#2-android-setup)).
+
+### 3. Add Test Phone Numbers (for development)
+
+- In Firebase Console > Authentication > Sign-in method > Phone > Add phone number for testing.
+- Example: `0348512101` (Firebase will use `+84348512101`), with a fixed OTP code (e.g., `123456`).
+- Use this number/code for testing on emulator or device.
+
+### 4. Install Firebase Dependencies
+
+```bash
+npm install @react-native-firebase/app @react-native-firebase/auth
+```
+
+### 5. Android Native Configuration
+
+- Ensure `google-services.json` is in `android/app/`.
+- Your `android/app/build.gradle` should include:
+  - `apply plugin: 'com.google.gms.google-services'`
+  - Firebase dependencies (see this repo's `build.gradle`).
+- If you change native code or dependencies, always rebuild the app (see below).
+
+### 6. Using Firebase SMS in the App
+
+- On the login screen, use the test phone number (e.g., `0348512101`).
+- On the OTP screen, use the test code (e.g., `123456`).
+- The app will verify OTP using Firebase directly on the device.
+- Backend is only used to fetch user info after successful Firebase verification (OTP is NOT sent to backend).
+
+### 7. Running on Emulator/Device (with release build)
+
+**For Firebase SMS to work, you must use a real device or an emulator with Google Play services.**
+
+#### a. Run on Android Emulator (Development Build)
+
+```bash
+npx expo run:android
+```
+
+- This will build and install a development build on your emulator/device.
+- Make sure the emulator has Google Play services enabled.
+- Use the test phone number and code as above.
+
+#### b. Run a Release Build (for production-like testing)
+
+```bash
+cd android
+./gradlew assembleRelease
+# or from project root
+npx expo run:android --variant release
+```
+
+- This will build and install a release APK on your device/emulator.
+- Use this to test real SMS flow and Firebase production config.
+
+#### c. Common Issues
+
+- If you see errors about missing native modules (e.g., `RNFBAppModule not found`), make sure you have rebuilt the app after installing native dependencies.
+- If you see errors about app not authorized, check your SHA-1/SHA-256 in Firebase Console.
+- If using Expo Go, **Firebase native modules will NOT work**. Always use a development or release build.
+
+## 🆔 How to Get Android SHA-1 and SHA-256 Fingerprints
+
+You need these fingerprints to register your app in the Firebase Console for SMS authentication.
+
+### 1. Open a terminal in your project root
+
+### 2. Run the Gradle signing report
+
+```bash
+cd android
+./gradlew signingReport
+# On Windows, use:
+# .\gradlew signingReport
+```
+
+### 3. Find the fingerprints in the output
+
+Look for a block like this (under `Variant: debug` or `Variant: release`):
+
+```
+Variant: debug
+Config: debug
+Store: .../debug.keystore
+Alias: AndroidDebugKey
+MD5: ...
+SHA1: 12:34:56:78:90:AB:CD:EF:...
+SHA-256: 12:34:56:78:90:AB:CD:EF:...
+```
+
+**Copy the SHA-1 and SHA-256 values.**
+
+### 4. Add these to Firebase Console
+
+- Go to your project in [Firebase Console](https://console.firebase.google.com/)
+- Project settings > Your apps > Add fingerprint
+- Paste the SHA-1 and SHA-256 values for both debug and release builds (if you plan to use both).
+
+**Tip:**
+
+- If you use a custom keystore for release, run the signing report with that keystore or sign a release build and extract the fingerprint from the APK using `keytool`.
+
 ## 📱 Running the App
 
 ### Development Mode

@@ -120,13 +120,12 @@ class AuthService {
     }
   }
 
-  public async login(phoneNumber: string, otp: string): Promise<any> {
+  public async login(phoneNumber: string): Promise<any> {
     try {
       const { data } = await apolloClient.mutate({
         mutation: AUTHENTICATE,
         variables: {
           phoneNumber,
-          otp,
         },
       });
 
@@ -147,10 +146,6 @@ class AuthService {
       if (error instanceof Error && error.message.includes('Số điện thoại không tồn tại')) {
         throw new Error("Số điện thoại không tồn tại");
       }
-      if (error instanceof Error && error.message.includes('Mã OTP không hợp lệ')) {
-        throw new Error("Mã OTP không hợp lệ");
-      }
-      
       throw error instanceof Error
         ? error
         : new Error("An unknown error occurred");

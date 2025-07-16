@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import authService from '@/services/auth';
-import { formatPhoneNumber, handleFirebaseError, sendOTP, verifyOTPAndNotifyBackend } from '@/services/firebaseAuth';
+import { formatPhoneNumber, handleFirebaseError, sendOTP } from '@/services/firebaseAuth';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 
@@ -84,19 +84,13 @@ export const useOtpVerification = ({ phoneNumber }: UseOtpVerificationProps) => 
       setIsLoading(true);
       setError(null);
 
-      // 1. Verify OTP with Firebase and notify backend
-      const backendUrl = "YOUR_BACKEND_URL"; // Replace with your actual backend URL
-      const firebaseResult = await verifyOTPAndNotifyBackend(
-        verificationId, 
-        otp, 
-        phoneNumber, 
-        backendUrl
-      );
-      
+      // 1. Verify OTP with Firebase only
+      const credential = (await import('@react-native-firebase/auth')).default.PhoneAuthProvider.credential(verificationId, otp);
+      const firebaseResult = await (await import('@react-native-firebase/auth')).default().signInWithCredential(credential);
       console.log("Firebase verification successful:", firebaseResult.user.uid);
 
       // 2. Get user data from your backend (backend now knows verification is successful)
-      const result = await authService.login(phoneNumber, otp);
+      const result = await authService.login(phoneNumber);
       console.log("Login result:", result);
       
       if (result) {
