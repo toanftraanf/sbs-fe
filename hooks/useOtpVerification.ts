@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import authService from '@/services/auth';
-import { useRouter } from 'expo-router';
+import { formatPhoneNumber, handleFirebaseError, sendOTP } from '@/services/firebaseAuth';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 const VERIFY_OTP_TIME = 30; // 30 seconds
@@ -12,12 +13,14 @@ interface UseOtpVerificationProps {
 export const useOtpVerification = ({ phoneNumber }: UseOtpVerificationProps) => {
   const { setUser } = useAuth();
   const router = useRouter();
+  const params = useLocalSearchParams<{ verificationId?: string }>();
 
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(VERIFY_OTP_TIME);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [verificationId, setVerificationId] = useState(params.verificationId || "");
 
   // Timer effect
   useEffect(() => {
@@ -48,30 +51,46 @@ export const useOtpVerification = ({ phoneNumber }: UseOtpVerificationProps) => 
       setIsLoading(true);
       setError(null);
 
-      const success = await authService.resetOTP(phoneNumber);
-      if (success) {
-        setTimeLeft(VERIFY_OTP_TIME);
-        setIsTimerRunning(true);
-      } else {
-        setError("Không thể gửi lại OTP. Vui lòng thử lại.");
-      }
+      // Resend OTP via Firebase
+      const firebasePhone = formatPhoneNumber(phoneNumber);
+      const confirmation = await sendOTP(firebasePhone);
+      
+      // Update verification ID
+      setVerificationId(confirmation.verificationId || "");
+      
+      // Reset timer
+      setTimeLeft(VERIFY_OTP_TIME);
+      setIsTimerRunning(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Lỗi mạng");
+      const error = handleFirebaseError(err);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    // if (!otp || otp.length !== 6) {
-    //   setError("Vui lòng nhập mã OTP đầy đủ (6 chữ số)");
-    //   return;
-    // }
+    if (!otp || otp.length !== 6) {
+      setError("Vui lòng nhập mã OTP đầy đủ (6 chữ số)");
+      return;
+    }
+
+    if (!verificationId) {
+      setError("Lỗi xác thực. Vui lòng gửi lại OTP");
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
 
-      const result = await authService.login(phoneNumber, otp);
+      // 1. Verify OTP with Firebase only
+      const credential = (await import('@react-native-firebase/auth')).default.PhoneAuthProvider.credential(verificationId, otp);
+      const firebaseResult = await (await import('@react-native-firebase/auth')).default().signInWithCredential(credential);
+      console.log("Firebase verification successful:", firebaseResult.user.uid);
+
+      // 2. Get user data from your backend (backend now knows verification is successful)
+      const result = await authService.login(phoneNumber);
       console.log("Login result:", result);
       
       if (result) {
@@ -121,7 +140,8 @@ export const useOtpVerification = ({ phoneNumber }: UseOtpVerificationProps) => 
         }, 100);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Xác thực thất bại");
+      const error = handleFirebaseError(err);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
