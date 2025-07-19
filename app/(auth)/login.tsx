@@ -57,14 +57,16 @@ export default function Login() {
           containerClassName="mb-8"
         />
         {/* Autofill test phone number for Firebase testing */}
-        <TouchableOpacity
-          style={{ marginBottom: 12 }}
-          onPress={() => setPhone("0348512101")}
-        >
-          <Text className="text-blue-500 underline text-xs">
-            Dùng số test Firebase (0348512101)
-          </Text>
-        </TouchableOpacity>
+        {__DEV__ && (
+          <TouchableOpacity
+            style={{ marginBottom: 12 }}
+            onPress={() => setPhone("0348512101")}
+          >
+            <Text className="text-blue-500 underline text-xs">
+              Dùng số test Firebase (0348512101)
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Error Message */}
         {error && (
