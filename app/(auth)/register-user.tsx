@@ -14,7 +14,11 @@ import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
 // import GoogleLoginButton from "../../components/GoogleLoginButton";
 import { icons } from "../../constants";
-import authService from "../../services/auth";
+import {
+  formatPhoneNumber,
+  handleFirebaseError,
+  sendOTP,
+} from "../../services/firebaseAuth";
 
 export default function RegisterUser() {
   const [fullName, setFullName] = useState("");
@@ -39,25 +43,23 @@ export default function RegisterUser() {
     try {
       setLoading(true);
       const formattedPhone = phone.startsWith("0") ? phone : `0${phone}`;
-
-      console.log("🔄 Starting CUSTOMER registration for:", formattedPhone);
-
-      await authService.registerCustomer(formattedPhone, fullName.trim());
-
-      console.log(
-        "✅ Customer registration successful, navigating to OTP verification"
-      );
-
+      const firebasePhone = formatPhoneNumber(formattedPhone);
+      // Send OTP using Firebase
+      const confirmation = await sendOTP(firebasePhone);
+      // Navigate to OTP verification, pass verificationId
       router.push({
         pathname: "/(auth)/verify-otp",
-        params: { phoneNumber: formattedPhone },
+        params: {
+          phoneNumber: formattedPhone,
+          verificationId: confirmation.verificationId,
+          mode: "register",
+          fullName: fullName.trim(),
+          role: "CUSTOMER",
+        },
       });
     } catch (error) {
-      console.error("❌ Registration failed:", error);
-      Alert.alert(
-        "Lỗi",
-        error instanceof Error ? error.message : "Đã có lỗi xảy ra"
-      );
+      const err = handleFirebaseError(error);
+      Alert.alert("Lỗi", err.message);
     } finally {
       setLoading(false);
     }

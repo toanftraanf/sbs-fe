@@ -255,6 +255,7 @@ export const useUserInformation = (
 
   // Final submission for Step 2
   const handleComplete = async () => {
+    console.log("handleComplete called", user);
     if (!user?.id) {
       Alert.alert(
         "Lỗi",
