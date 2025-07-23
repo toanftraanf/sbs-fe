@@ -8,9 +8,12 @@ const VERIFY_OTP_TIME = 30; // 30 seconds
 
 interface UseOtpVerificationProps {
   phoneNumber: string;
+  mode?: string;
+  fullName?: string;
+  role?: string;
 }
 
-export const useOtpVerification = ({ phoneNumber }: UseOtpVerificationProps) => {
+export const useOtpVerification = ({ phoneNumber, mode = "login", fullName = "", role = "CUSTOMER" }: UseOtpVerificationProps) => {
   const { setUser } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ verificationId?: string }>();
@@ -87,55 +90,43 @@ export const useOtpVerification = ({ phoneNumber }: UseOtpVerificationProps) => 
       // 1. Verify OTP with Firebase only
       const credential = (await import('@react-native-firebase/auth')).default.PhoneAuthProvider.credential(verificationId, otp);
       const firebaseResult = await (await import('@react-native-firebase/auth')).default().signInWithCredential(credential);
-      console.log("Firebase verification successful:", firebaseResult.user.uid);
+      const user = (await import('@react-native-firebase/auth')).default().currentUser;
+      const idToken = user ? await user.getIdToken() : null;
+      if (!idToken) throw new Error("Không lấy được Firebase ID token");
 
-      // 2. Get user data from your backend (backend now knows verification is successful)
-      const result = await authService.login(phoneNumber);
-      console.log("Login result:", result);
-      
+      let result;
+      if (mode === "register") {
+        if (role === "CUSTOMER") {
+          await authService.registerCustomer(phoneNumber, fullName);
+        } else {
+          await authService.registerOwner(phoneNumber, fullName);
+        }
+        // Immediately log in after registration
+        result = await authService.login(phoneNumber);
+      } else {
+        result = await authService.login(phoneNumber);
+      }
+
       if (result) {
         setUser(result);
-
+        // ... existing profile check and navigation ...
         let shouldRedirectToProfile = false;
-
-        // Check if user needs to complete their profile
         try {
           const userProfile = await authService.getUserProfile(parseInt(result.id));
-          
-          // Check if user has essential profile information
           const hasFullName = userProfile?.fullName && userProfile.fullName.trim() !== "";
           const hasDob = userProfile?.dob && userProfile.dob !== null && userProfile.dob !== undefined;
           const hasSex = userProfile?.sex && userProfile.sex !== null && userProfile.sex !== undefined;
-          
-          console.log("Profile check details:", {
-            hasFullName,
-            hasDob,
-            hasSex,
-            fullName: userProfile?.fullName,
-            dob: userProfile?.dob,
-            sex: userProfile?.sex,
-            userProfileExists: !!userProfile
-          });
-          
           if (!hasFullName || !hasDob || !hasSex) {
             shouldRedirectToProfile = true;
           }
         } catch (profileError) {
-          console.log("❌ Error fetching user profile, assuming incomplete:", profileError);
           shouldRedirectToProfile = true;
         }
-
-        // Navigate based on profile completion
         setTimeout(() => {
           if (shouldRedirectToProfile) {
             router.replace("/(auth)/user-information");
           } else {
-            // User has complete profile, navigate to appropriate tab
-            if (result.role === "OWNER") {
-              router.replace("/(tabs)");
-            } else {
-              router.replace("/(tabs)");
-            }
+            router.replace("/(tabs)");
           }
         }, 100);
       }

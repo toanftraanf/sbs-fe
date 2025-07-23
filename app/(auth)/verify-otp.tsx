@@ -10,8 +10,14 @@ export default function VerifyOtp() {
   const params = useLocalSearchParams<{
     phoneNumber: string;
     verificationId?: string;
+    mode?: string;
+    fullName?: string;
+    role?: string;
   }>();
   const phoneNumber = params.phoneNumber || "";
+  const mode = params.mode || "login";
+  const fullName = params.fullName || "";
+  const role = params.role || "CUSTOMER";
 
   const {
     otp,
@@ -22,7 +28,7 @@ export default function VerifyOtp() {
     formatTime,
     handleResendOtp,
     handleVerifyOtp,
-  } = useOtpVerification({ phoneNumber });
+  } = useOtpVerification({ phoneNumber, mode, fullName, role });
 
   return (
     <View className="flex-1 bg-white px-6 pt-10">
