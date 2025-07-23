@@ -1,13 +1,32 @@
 {
   "project_info": {
-    "project_number": "665030479467",
-    "project_id": "sportnow-40015",
-    "storage_bucket": "sportnow-40015.firebasestorage.app"
+    "project_number": "97256848919",
+    "project_id": "fujimart-8e239",
+    "storage_bucket": "fujimart-8e239.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:665030479467:android:9819ff64a06c0df0b1eb2e",
+        "mobilesdk_app_id": "1:97256848919:android:15b50a574ec3f5db536652",
+        "android_client_info": {
+          "package_name": "com.example.fujumart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsIe9TRiavL3oWyT0y5Vv1LdJYjkSKMMs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97256848919:android:0608700bcf5c5025536652",
         "android_client_info": {
           "package_name": "com.sbs.fe"
         }
@@ -15,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDkiT3pM99rTnWekur0UpmH2qeVipCp86A"
+          "current_key": "AIzaSyAsIe9TRiavL3oWyT0y5Vv1LdJYjkSKMMs"
         }
       ],
       "services": {

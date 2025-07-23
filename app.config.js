@@ -1,15 +1,15 @@
 import 'dotenv/config';
 
 export default {
-    name: "sbs-fe",
-    slug: "sbs-fe",
+    name: "SportNow",
+    slug: "SportNow",
     version: "1.0.0",
     orientation: "portrait",
     scheme: "sbsfe",
-    icon: "./assets/adaptive-icon.png",
+    icon: "./assets/images/icon.png",
     userInterfaceStyle: "light",
     splash: {
-      image: "./assets/splash.png",
+      image: "./assets/images/icon.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
@@ -22,13 +22,13 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
+        foregroundImage: "./assets/images/icon.png",
         backgroundColor: "#ffffff"
       },
       package: "com.sbs.fe"
     },
     web: {
-      favicon: "./assets/images/favicon.png"
+      favicon: "./assets/images/icon.png"
     },
     extra: {
       ENV: process.env.ENV || "dev",
