@@ -13,7 +13,11 @@ import {
 import AppButton from "../../components/AppButton";
 import AppTextInput from "../../components/AppTextInput";
 import { icons } from "../../constants";
-import authService from "../../services/auth";
+import {
+  formatPhoneNumber,
+  handleFirebaseError,
+  sendOTP,
+} from "../../services/firebaseAuth";
 
 export default function RegisterOwner() {
   const [fullName, setFullName] = useState("");
@@ -34,16 +38,23 @@ export default function RegisterOwner() {
     try {
       setLoading(true);
       const formattedPhone = phone.startsWith("0") ? phone : `0${phone}`;
-      await authService.registerOwner(formattedPhone, fullName.trim());
+      const firebasePhone = formatPhoneNumber(formattedPhone);
+      // Send OTP using Firebase
+      const confirmation = await sendOTP(firebasePhone);
+      // Navigate to OTP verification, pass verificationId
       router.push({
         pathname: "/(auth)/verify-otp",
-        params: { phoneNumber: formattedPhone },
+        params: {
+          phoneNumber: formattedPhone,
+          verificationId: confirmation.verificationId,
+          mode: "register",
+          fullName: fullName.trim(),
+          role: "OWNER",
+        },
       });
     } catch (error) {
-      Alert.alert(
-        "Lỗi",
-        error instanceof Error ? error.message : "Đã có lỗi xảy ra"
-      );
+      const err = handleFirebaseError(error);
+      Alert.alert("Lỗi", err.message);
     } finally {
       setLoading(false);
     }

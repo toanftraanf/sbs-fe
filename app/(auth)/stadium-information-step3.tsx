@@ -188,6 +188,7 @@ export default function StadiumInformationStep3() {
     }
 
     if (!user?.id) {
+      console.log("User ID not found", user);
       Alert.alert(
         "Lỗi",
         "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại."
